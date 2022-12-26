@@ -123,7 +123,7 @@ class Computer:
         ###############################################################################################################
 
         # Convolution
-        kernel = np.ones((1, 1))*self.weight
+        kernel = np.ones((1, 1))*(self.weight/10)
 
         convolution = p.ConvolutionConnector(kernel_weights=kernel)
         out_width, out_height = convolution.get_post_shape((self.width, self.height))
@@ -219,6 +219,7 @@ class Computer:
 
     def run_sim(self):
         p.run(self.run_time)
+        time.sleep(0.1)
 
     def wrap_up(self):
         time.sleep(1)

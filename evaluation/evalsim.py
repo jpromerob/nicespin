@@ -20,10 +20,10 @@ def parse_args():
     parser.add_argument('-p', '--port', type=int, help="SPIF's port", default=3333)
     parser.add_argument('-r', '--remote-receiver', action="store_true", help="Remote Receiver")
     parser.add_argument('-s', '--simulate-spif', action="store_true", help="Simulate SPIF")
-    parser.add_argument('-t','--runtime', type=int, help="Run Time, in seconds", default=60*180)
+    parser.add_argument('-t','--runtime', type=int, help="Run Time, in seconds", default=60*144)
     parser.add_argument('-x', '--width', type=int, help="Image size (in px)", default=40)
     parser.add_argument('-y', '--height', type=int, help="Image size (in px)", default=40)
-    parser.add_argument('-w', '--weight', type=float, help="Kernel Weights", default=7)
+    parser.add_argument('-w', '--weight', type=int, help="Kernel Weights", default=7)
 
 
     return parser.parse_args()
@@ -40,6 +40,7 @@ if __name__ == '__main__':
         mode = "enet"
 
     filename = mode + "_" + str(args.width) + "x" + str(args.height) + "_w" + str(args.weight) + "_" + current_datetime.strftime("%Y%m%d_%Hh%M") +".csv"
+    print("\n\n\nSaving simulation results in " + filename + "\n\n\n")
     
     manager = multiprocessing.Manager()
     end_of_sim = manager.Value('i', 0)

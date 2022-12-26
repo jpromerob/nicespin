@@ -16,11 +16,6 @@ os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
 import pygame
 
 
-
-P_SHIFT = 15
-Y_SHIFT = 0
-X_SHIFT = 16
-
 class Stimulator:
     def __init__(self, args, input_q, end_of_sim):
 
@@ -96,7 +91,7 @@ class Stimulator:
                                 yield ((x,y)), (freq)
                                 
                     t_current =time.time()
-                    if t_current >= t_start + 150:
+                    if t_current >= t_start + 120:
                         break
                         
 
@@ -166,6 +161,7 @@ class Stimulator:
                     ev_per_s = int(ev_count/bin_t)
                     expected_count = int(freq*min(self.width,self.height)**2)
                     
+                    # Error in Ev Count needs to be within the 5% margin to be reported
                     error = 100*abs(ev_per_s-expected_count)/expected_count
                     if error < 5:
                         # print(f"Input -->\tT:\t{ev_per_s}\t[T]:\t{expected_count}\te:\t{int(error*10)/10}%\tf:\t{freq}")
