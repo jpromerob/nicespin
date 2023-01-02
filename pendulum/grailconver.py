@@ -36,7 +36,7 @@ SPIF_PORT = 3332
 MY_PC_IP = "172.16.222.199"
 MY_PC_PORT = 3331
 POP_LABEL = "target"
-RUN_TIME = 1000*60*20
+RUN_TIME = 1000*60*60
 CHIP = (0, 0)
 
 def create_lut(w, h, sw, sh):
