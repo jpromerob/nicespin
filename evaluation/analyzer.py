@@ -7,6 +7,12 @@ import csv
 import matplotlib.pyplot as plt
 import numpy as np
 
+
+###############################################################################################
+# This script has to be launch within  'simulations' directory
+###############################################################################################
+
+
 ###############################################################################################
 # Parsing *.csv File
 ###############################################################################################
@@ -112,8 +118,10 @@ def parse_args():
 
     parser = argparse.ArgumentParser(description='SpiNNaker-SPIF Simulation with Artificial Data')
 
+    parser.add_argument('-r', '--run', type= str, help="Simulation Run", default="")
     parser.add_argument('-s', '--spif', type= str, help="SPIF File", default="")
     parser.add_argument('-e', '--enet', type= str, help="ENET File", default="")
+    parser.add_argument('-w', '--weight', type= float, help="Synaptic weights", default=72)
 
 
     return parser.parse_args()
@@ -144,52 +152,60 @@ if __name__ == '__main__':
 
 
     args = parse_args()
-    plot_saturation = False
-    plot_rupture = False
 
-    
-    if args.spif != "":
-        line_count, list_in, list_out, list_exp = parse_file(args.spif)
-        averages = get_averages(line_count, list_exp, list_out)
-        spif_in, spif_out, spif_exp = get_trimmed_data(averages, line_count, list_in, list_out, list_exp)
-        plt.scatter(spif_exp, spif_in, label="SPIF in")
-        plt.scatter(spif_in, spif_out, label="SPIF out")
-        plot_saturation = True
+    if args.run != "":
+
+        plot_saturation = False
+        plot_rupture = False
+
+        plt.figure(figsize=(8, 6))
+
+        if args.spif != "":
+            spif_filename = args.run + "/stats/" + args.spif
+            line_count, list_in, list_out, list_exp = parse_file(spif_filename)
+            averages = get_averages(line_count, list_exp, list_out)
+            spif_in, spif_out, spif_exp = get_trimmed_data(averages, line_count, list_in, list_out, list_exp)
+            plt.scatter(spif_exp, spif_in, label="SPIF in")
+            plt.scatter(spif_in, spif_out, label="SPIF out")
+            plot_saturation = True
+            
+        if args.enet != "":
+            enet_filename = args.run + "/stats/" + args.enet
+            line_count, list_in, list_out, list_exp = parse_file(enet_filename)
+            averages = get_averages(line_count, list_exp, list_out)
+            enet_in, enet_out, enet_exp = get_trimmed_data(averages, line_count, list_in, list_out, list_exp)
+            plt.scatter(enet_exp, enet_in, label="ENET in")
+            plt.scatter(enet_in, enet_out, label="ENET out")
+            plot_rupture = True
+
+        if plot_saturation:
+            sat_value, idx = get_saturation_value(spif_out)
+            # plt.scatter(spif_in[idx], spif_out[idx], color = 'k', marker='o')
+            saturation_label = "Saturation @ ~ " + str(int(sat_value/1000)) + " kev/s"
+            plt.axvline(x = spif_in[idx], color = 'k', linestyle = '-.', linewidth=0.5)
+            plt.axhline(y = sat_value, color = 'k', linestyle = '-.', label = saturation_label)
+
+        if plot_rupture:
+            if len(np.where(enet_out==0)[0]) > 0:
+                idx_rupture = np.where(enet_out==0)[0][0]
+                rupture_in = (enet_in[idx_rupture]+enet_in[idx_rupture-1])/2
+                rupture_out = enet_out[idx_rupture-1]
+                rupture_label = "Rupture @ ~ " + str(int(rupture_out/1000)) + " kev/s (" + str(int(rupture_in/1000)) + "kev/s)"
+                plt.axvline(x = rupture_in, linestyle='--', color = 'k', linewidth=0.5)
+                plt.axhline(y = rupture_out, linestyle='--', color = 'k', label = rupture_label)
+
+        min_ev = 60*1000
+        max_ev = 600*1000
+        diagonal = np.linspace(min_ev, max_ev, 1000)
+        plt.plot(diagonal, diagonal, linestyle=':', color = 'm', label="Expected SpiNNaker Input")
+        plt.legend()
         
-    if args.enet != "":
-        line_count, list_in, list_out, list_exp = parse_file(args.enet)
-        averages = get_averages(line_count, list_exp, list_out)
-        enet_in, enet_out, enet_exp = get_trimmed_data(averages, line_count, list_in, list_out, list_exp)
-        plt.scatter(enet_exp, enet_in, label="ENET in")
-        plt.scatter(enet_in, enet_out, label="ENET out")
-        plot_rupture = True
+        plt.title(f"SPIF vs ENET (w={int(args.weight)})")
+        plt.xlabel("# of Events sent by Skirnir to SpiNNaker every Second")
+        plt.ylabel("# of Events at SPIF's/ENET's Input/Output")
+        plt.xlim([min_ev, max_ev])
+        plt.ylim([0, max_ev])
+        plt.savefig(f"{args.run}/images/SPIFvsENET_w{int(args.weight)}.png")
 
-    if plot_saturation:
-        sat_value, idx = get_saturation_value(spif_out)
-        # plt.scatter(spif_in[idx], spif_out[idx], color = 'k', marker='o')
-        saturation_label = "Saturation @ ~ " + str(int(sat_value/1000)) + " kev/s"
-        plt.axvline(x = spif_in[idx], color = 'k', linestyle = '-.', linewidth=0.5)
-        plt.axhline(y = sat_value, color = 'k', linestyle = '-.', label = saturation_label)
-
-
-    if plot_rupture:
-        # pdb.set_trace()
-        idx_rupture = np.where(enet_out==0)[0][0]
-        rupture_in = (enet_in[idx_rupture]+enet_in[idx_rupture-1])/2
-        rupture_out = enet_out[idx_rupture-1]
-        rupture_label = "Rupture @ ~ " + str(int(rupture_out/1000)) + " kev/s"
-        plt.axvline(x = rupture_in, linestyle='--', color = 'k', linewidth=0.5)
-        plt.axhline(y = rupture_out, linestyle='--', color = 'k', label = rupture_label)
-
-    min_ev = 60*1000
-    max_ev = 600*1000
-    diagonal = np.linspace(min_ev, max_ev, 1000)
-    plt.plot(diagonal, diagonal, linestyle=':', color = 'm', label="Expected SpiNNaker Input")
-    plt.legend()
-    
-    plt.title("SPIF vs ENET")
-    plt.xlabel("# of Events sent by Skirnir to SpiNNaker every Second")
-    plt.ylabel("# of Events at SPIF's/ENET's Input/Output")
-    plt.xlim([min_ev, max_ev])
-    plt.ylim([0, max_ev])
-    plt.show()
+    else:
+        print("Which run?")
