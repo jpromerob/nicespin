@@ -23,9 +23,7 @@ class Stimulator:
         self.width = args.width
         self.height = args.height
         
-        # Destination Parameters
-        self.ip_addr = args.ip
-        self.spif_port = args.port
+
 
         # Infrastructure parameters
         self.input_q = input_q
@@ -44,6 +42,8 @@ class Stimulator:
             self.x_shift = 16
             self.no_timestamp = 0x80000000
             self.sock_data = b""
+            self.ip_addr = args.ip
+            self.spif_port = args.port
         else:
             self.spikes = []
 

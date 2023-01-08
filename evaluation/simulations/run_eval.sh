@@ -1,22 +1,22 @@
 #!/bin/bash
 
-START=0
-END=14
+# run_eval.sh <BOARD> <FIRST_W> <NB_PTS>
 
-for (( c=$START; c<=$END; c++ ))
+BOARD=$1
+FIRST_W=$2
+NB_PTS=$3
+
+
+for (( c=0; c<$NB_PTS; c++ ))
 do
-    b=$(( $c * 4 + 56 ))
+    b=$(( $c * 4 + $FIRST_W ))
 	echo "Simulations with w=$b"
 
     # SPIF
-    rig-power 172.16.223.0
-    sleep 5
-    python3 ~/nicespin/evaluation/evalsim.py -x 40 -y 40 -w $b 
+    python3 ~/nicespin/evaluation/evalsim.py -x 40 -y 40 -b $BOARD -w $b 
     sleep 5
 
     # ENET
-    rig-power 172.16.223.0
-    sleep 5
-    python3 ~/nicespin/evaluation/evalsim.py -x 40 -y 40 -w $b -s
+    python3 ~/nicespin/evaluation/evalsim.py -x 40 -y 40 -b $BOARD -w $b -s
     sleep 5
 done

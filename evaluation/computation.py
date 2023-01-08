@@ -18,7 +18,6 @@ from pyNN.space import Grid2D
 
 
 
-
 def create_lut(w, h, sw, sh):    
 
     delay = 1 # 1 [ms]
@@ -50,6 +49,11 @@ class Computer:
         self.npc_x = 8
         self.npc_y = 4
         self.nb_boards = 1        
+        try:
+            self.board = args.board
+            self.cfg_file = f"spynnaker_{self.board}.cfg"
+        except:
+            print("Wrong SpiNN-5 Board")
 
         # Infrastructure Parameters
         self.output_q = output_q
@@ -98,7 +102,7 @@ class Computer:
         ###############################################################################################################
         # SpiNNaker Configuration
         ###############################################################################################################
-        p.setup(timestep=1.0, n_boards_required=self.nb_boards)
+        p.setup(timestep=1.0, n_boards_required=self.nb_boards, cfg_file=self.cfg_file)
         p.set_number_of_neurons_per_core(p.IF_curr_exp, (self.npc_x, self.npc_y))
 
 

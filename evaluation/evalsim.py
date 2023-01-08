@@ -11,11 +11,20 @@ from computation import *
 from visualization import *
 
 
+
+spin_spif_map = {"1": "172.16.223.2", 
+                 "37": "172.16.223.106", 
+                 "43": "172.16.223.98",
+                 "13": "172.16.223.10",
+                 "121": "172.16.223.122",
+                 "129": "172.16.223.130"}
+
 def parse_args():
 
 
     parser = argparse.ArgumentParser(description='SpiNNaker-SPIF Simulation with Artificial Data')
 
+    parser.add_argument('-b', '--board', type= str, help="SPIF's SpiNN-5 IP x.x.x.?", default="1")
     parser.add_argument('-i', '--ip', type= str, help="SPIF's IP address", default="172.16.223.2")
     parser.add_argument('-p', '--port', type=int, help="SPIF's port", default=3333)
     parser.add_argument('-r', '--remote-receiver', action="store_true", help="Remote Receiver")
@@ -32,6 +41,15 @@ def parse_args():
 if __name__ == '__main__':
 
     args = parse_args()
+    try:
+        args.ip = spin_spif_map[args.board]
+        rig_command = f"rig-power 172.16.223.{int(args.board)-1}"
+        print(f"Currently waiting for '{rig_command}' to end")
+        os.system(rig_command)
+        time.sleep(5)
+    except:
+        print("Wrong SpiNN-5 to SPIF mapping")
+        quit()
 
     current_datetime = datetime.datetime.now()
     if not args.simulate_spif:
@@ -57,7 +75,6 @@ if __name__ == '__main__':
     with spin:
         with stim:
             with disp:
-
                 spin.run_sim()
                 end_of_sim.value = 1 # Let other processes know that simulation stopped
                 spin.wrap_up()
