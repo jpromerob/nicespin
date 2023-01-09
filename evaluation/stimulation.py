@@ -21,9 +21,17 @@ class Stimulator:
 
         # SNN parameters
         self.width = args.width
-        self.height = args.height
-        
+        self.height = args.height       
 
+        # Other Stuff
+        self.bin = args.bin    
+        self.min_freq = 25
+        self.max_freq = 375
+        self.step = 5
+        self.points = 30
+        self.time_per_point = self.points*self.bin # seconds
+        self.nb_steps = int(1+(self.max_freq-self.min_freq)/self.step)
+        self.duration = self.time_per_point*self.nb_steps
 
         # Infrastructure parameters
         self.input_q = input_q
@@ -73,11 +81,7 @@ class Stimulator:
 
         while True: 
             
-            min_freq = 25
-            max_freq = 375
-            step = 5
-            nb_steps = int(1+(max_freq-min_freq)/step)
-            freq_list = np.linspace(min_freq,max_freq,nb_steps)
+            freq_list = np.linspace(self.min_freq,self.max_freq,self.nb_steps)
             
             for freq in freq_list:
                 t_start = time.time()
@@ -91,11 +95,14 @@ class Stimulator:
                                 yield ((x,y)), (freq)
                                 
                     t_current =time.time()
-                    if t_current >= t_start + 120:
+                    if t_current >= t_start + self.time_per_point:
                         break
                         
 
     def launch_input_handler(self):
+
+
+        ev_gen = self.event_generator() 
 
         IN_POP_LABEL = "input"
 
@@ -105,7 +112,6 @@ class Stimulator:
 
         
         blink_count = 0
-        ev_gen = self.event_generator() 
         t_start = time.time()
         t_last_blink = time.time()
         going_up = False
@@ -115,6 +121,8 @@ class Stimulator:
         pack_sz = 16*16
         old_freq = 10
         we_send_stuff = False
+        
+        time.sleep(30) # Waiting for SpiNNaker to be ready
 
         if self.use_spif:
             sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -141,7 +149,7 @@ class Stimulator:
                     step = 10
                     old_freq = freq
                     going_up = False
-                    time.sleep(4)
+                    time.sleep(self.bin*2) #To get rid of 'old' events in the neck
                 
                 x = e[0]
                 y = e[1]
@@ -155,10 +163,9 @@ class Stimulator:
 
                     
                 t_current = time.time()  
-                bin_t = 5  
-                if t_current >= t_start + bin_t:
+                if t_current >= t_start + self.bin:
                     t_start = t_current
-                    ev_per_s = int(ev_count/bin_t)
+                    ev_per_s = int(ev_count/self.bin)
                     expected_count = int(freq*min(self.width,self.height)**2)
                     
                     # Error in Ev Count needs to be within the 5% margin to be reported
@@ -169,7 +176,7 @@ class Stimulator:
                         we_send_stuff = True
                     else:
                         we_send_stuff = False
-                        # print(f".......... -->\tT:\t{ev_per_s}\t[T]:\t{expected_count}\te:\t{int(error*10)/10}%\tf:\t{freq}")
+                        # print(f"...-->\tT:\t{ev_per_s}\t[T]:\t{expected_count}\te:\t{int(error*10)/10}%\tf:\t{freq}\tvs:\t{var_sleeper_ms}")
                         
                         
                     
@@ -197,8 +204,9 @@ class Stimulator:
                 if we_send_stuff:
                     connection.send_spikes(IN_POP_LABEL, self.spikes)
                 self.spikes = []
-                    
-            time.sleep(var_sleeper_ms/1000)
+
+            if var_sleeper_ms > 0:
+                time.sleep(var_sleeper_ms/1000)
 
         print("No more events to be created")
         if self.use_spif:

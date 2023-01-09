@@ -43,9 +43,9 @@ def create_lut(w, h, sw, sh):
 
 class Computer:
 
-    def __init__(self, args, output_q, database_port):
+    def __init__(self, args, output_q, stim):
         # SpiNNaker Parameters
-        self.run_time = int(args.runtime)*1000 # in [ms]
+        self.run_time = int(stim.duration)*1000 # in [ms]
         self.npc_x = 8
         self.npc_y = 4
         self.nb_boards = 1        
@@ -80,7 +80,7 @@ class Computer:
         self.width = args.width
         self.height = args.height
         self.weight = args.weight
-        self.database_port = database_port
+        self.database_port = stim.port.value
 
         # Remote receiver's parameters
         self.remote_receiver = args.remote_receiver
@@ -93,7 +93,7 @@ class Computer:
         self.t_start = 0
         self.ev_count = 0 
         self.first_ev_sent = False
-        self.bin_t = 2 # N second-bins to count events
+        self.bin_t = args.bin/2 # N second-bins to count events
 
 
     def __enter__(self):

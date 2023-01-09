@@ -19,6 +19,7 @@ class Display:
     def __init__(self, args, input_q, output_q, end_of_sim, filename):
 
         self.input_q = input_q
+        self.bin = args.bin
         self.output_q = output_q
         self.end_of_sim = end_of_sim
         self.filename = filename
@@ -73,4 +74,4 @@ class Display:
                     write_line = False
                     ev_out_count = 0
 
-                time.sleep(2)
+                time.sleep(self.bin/4)

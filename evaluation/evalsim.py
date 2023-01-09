@@ -25,11 +25,11 @@ def parse_args():
     parser = argparse.ArgumentParser(description='SpiNNaker-SPIF Simulation with Artificial Data')
 
     parser.add_argument('-b', '--board', type= str, help="SPIF's SpiNN-5 IP x.x.x.?", default="1")
+    parser.add_argument('-n', '--bin', type=float, help="Time bin in [s] (for event counts)", default=1.0)
     parser.add_argument('-i', '--ip', type= str, help="SPIF's IP address", default="172.16.223.2")
     parser.add_argument('-p', '--port', type=int, help="SPIF's port", default=3333)
     parser.add_argument('-r', '--remote-receiver', action="store_true", help="Remote Receiver")
     parser.add_argument('-s', '--simulate-spif', action="store_true", help="Simulate SPIF")
-    parser.add_argument('-t', '--runtime', type=int, help="Run Time, in seconds", default=60*144)
     parser.add_argument('-x', '--width', type=int, help="Image size (in px)", default=40)
     parser.add_argument('-y', '--height', type=int, help="Image size (in px)", default=40)
     parser.add_argument('-w', '--weight', type=int, help="Kernel Weights", default=7)
@@ -67,10 +67,8 @@ if __name__ == '__main__':
 
 
     stim = Stimulator(args, input_q, end_of_sim)
-    spin = Computer(args, output_q, stim.port.value)
+    spin = Computer(args, output_q, stim)
     disp = Display(args, input_q, output_q, end_of_sim, filename)
-
-
 
     with spin:
         with stim:
