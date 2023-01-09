@@ -130,7 +130,7 @@ class Stimulator:
             t_current = time.time()  
             # print(f"Sent ({x},{y}) at t={t_current}")
             self.input_q.put((x,y,t_current))
-            time.sleep(0.1)
+            time.sleep(0.005)
 
         print("No more events to be created")
         if self.use_spif:
