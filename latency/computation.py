@@ -46,6 +46,8 @@ class Computer:
     def __init__(self, args, output_q, stim):
         # SpiNNaker Parameters
         self.run_time = args.runtime*1000 # in [ms]
+        self.timestep = args.timestep/1000 # from [us] to [ms]
+        print(f"Time Step: {self.timestep} [ms]")
         self.npc_x = 8
         self.npc_y = 4
         self.nb_boards = 1        
@@ -97,7 +99,7 @@ class Computer:
         ###############################################################################################################
         # SpiNNaker Configuration
         ###############################################################################################################
-        p.setup(timestep=1.0, n_boards_required=self.nb_boards, cfg_file=self.cfg_file)
+        p.setup(timestep=self.timestep, n_boards_required=self.nb_boards, cfg_file=self.cfg_file)
         p.set_number_of_neurons_per_core(p.IF_curr_exp, (self.npc_x, self.npc_y))
 
 

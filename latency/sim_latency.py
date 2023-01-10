@@ -33,6 +33,8 @@ def parse_args():
     parser.add_argument('-y', '--height', type=int, help="Image size (in px)", default=40)
     parser.add_argument('-w', '--weight', type=int, help="Kernel Weights", default=7)
     parser.add_argument('-t', '--runtime', type=int, help="Run Time, in seconds", default=30)
+    parser.add_argument('-e', '--timestep', type=int, help="SpiNNaker Timestep in [us]", default=1000)
+
 
 
     return parser.parse_args()
