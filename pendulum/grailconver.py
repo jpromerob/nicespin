@@ -36,7 +36,7 @@ SPIF_PORT = 3332
 MY_PC_IP = "172.16.222.199"
 MY_PC_PORT = 3331
 POP_LABEL = "target"
-RUN_TIME = 1000*60*120
+RUN_TIME = 1000*60*240
 CHIP = (0, 0)
 
 def create_lut(w, h, sw, sh):
@@ -76,7 +76,8 @@ make_kernel_circle(0.36*k_sz, k_sz, pos_w*scaler, kernel)
 make_kernel_circle(0.26*k_sz, k_sz, neg_w*scaler, kernel)
 
 plt.imshow(kernel, interpolation='nearest')
-plt.show()
+plt.savefig("kernel.png")
+
 # pdb.set_trace()
 
 # scaler = 0.03
