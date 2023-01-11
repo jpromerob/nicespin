@@ -75,12 +75,12 @@ class Computer:
             self.lut = []
         else:
             self.port_spin2cpu = int(random.randint(12000,15000))
+            self.database_port = stim.port.value
 
         # SNN Parameters
-        self.width = args.width
-        self.height = args.height
+        self.width = args.length
+        self.height = args.length
         self.weight = args.weight
-        self.database_port = stim.port.value
 
         # Remote receiver's parameters
         self.remote_receiver = args.remote_receiver

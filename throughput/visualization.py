@@ -16,13 +16,14 @@ LINE = "________________________________________"
 
 class Display:
     
-    def __init__(self, args, input_q, output_q, end_of_sim, filename):
+    def __init__(self, args, input_q, output_q, end_of_sim, stim, filename):
 
         self.input_q = input_q
         self.bin = args.bin
         self.output_q = output_q
         self.end_of_sim = end_of_sim
         self.filename = filename
+        self.streams = stim.streams
 
         self.p_stats = multiprocessing.Process(target=self.get_stats, args=())
     
@@ -34,10 +35,11 @@ class Display:
 
     def get_stats(self):
         
-        ev_in_count = 0
+        ev_in_count = np.zeros(self.streams)
+        in_count_total = 0
+        ev_expected = np.zeros(self.streams)
+        exp_total = 0
         ev_out_count = 0
-        ev_expected = 0
-        old_expected = 0
 
         write_line = False
 
@@ -56,22 +58,27 @@ class Display:
 
                 while not self.input_q.empty():
                     in_data = self.input_q.get(False)
-                    ev_in_count = in_data[0]
-                    ev_expected = in_data[1]
+                    stream_id = in_data[2]
+                    ev_in_count[stream_id] = in_data[0]
+                    ev_expected[stream_id] = in_data[1]
                     write_line = True
+
+                exp_total = 0
+                in_count_total = 0
+                for s_id in range(self.streams):
+                    in_count_total += ev_in_count[s_id]
+                    exp_total += ev_expected[s_id]
                     
                 while not self.output_q.empty():
                     ev_out_count = self.output_q.get(False)
 
                 
                 if write_line:
-                    if old_expected <= ev_expected:
-                        print(f"Exp:\t{ev_expected}\tIn:\t{ev_in_count}\tOut:\t{ev_out_count}")
-                        csv_writer.writerow([ev_expected, ev_in_count, ev_out_count])
-                        old_expected = ev_expected
-                    else:
-                        print("...")
+                    print(f"Exp:\t{int(exp_total)}\tIn:\t{int(in_count_total)}\tOut:\t{ev_out_count}")
+                    csv_writer.writerow([int(exp_total), int(in_count_total), int(ev_out_count)])
+                    
                     write_line = False
-                    ev_out_count = 0
+                    in_count_total = 0
+                    exp_total = 0
 
                 time.sleep(self.bin/4)

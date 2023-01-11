@@ -30,8 +30,8 @@ def parse_args():
     parser.add_argument('-p', '--port', type=int, help="SPIF's port", default=3333)
     parser.add_argument('-r', '--remote-receiver', action="store_true", help="Remote Receiver")
     parser.add_argument('-s', '--simulate-spif', action="store_true", help="Simulate SPIF")
-    parser.add_argument('-x', '--width', type=int, help="Image size (in px)", default=40)
-    parser.add_argument('-y', '--height', type=int, help="Image size (in px)", default=40)
+    parser.add_argument('-l', '--length', type=int, help="Unit size in px", default=40)
+    parser.add_argument('-u', '--units', type=int, help="# of units per column/row", default=40)
     parser.add_argument('-w', '--weight', type=int, help="Kernel Weights", default=7)
 
 
@@ -41,15 +41,6 @@ def parse_args():
 if __name__ == '__main__':
 
     args = parse_args()
-    try:
-        args.ip = spin_spif_map[args.board]
-        rig_command = f"rig-power 172.16.223.{int(args.board)-1}"
-        print(f"Currently waiting for '{rig_command}' to end")
-        os.system(rig_command)
-        time.sleep(5)
-    except:
-        print("Wrong SpiNN-5 to SPIF mapping")
-        quit()
 
     current_datetime = datetime.datetime.now()
     if not args.simulate_spif:
@@ -57,22 +48,13 @@ if __name__ == '__main__':
     else:
         mode = "enet"
 
-    filename = mode + "_" + str(args.width) + "x" + str(args.height) + "_w" + str(args.weight) + "_" + current_datetime.strftime("%Y%m%d_%Hh%M") +".csv"
-    print("\n\n\nSaving simulation results in " + filename + "\n\n\n")
     
     manager = multiprocessing.Manager()
     end_of_sim = manager.Value('i', 0)
-    input_q = multiprocessing.Queue() # events
-    output_q = multiprocessing.Queue() # events
 
+    input_q = multiprocessing.Queue() # events
 
     stim = Stimulator(args, input_q, end_of_sim)
-    spin = Computer(args, output_q, stim)
-    disp = Display(args, input_q, output_q, end_of_sim, filename)
 
-    with spin:
-        with stim:
-            with disp:
-                spin.run_sim()
-                end_of_sim.value = 1 # Let other processes know that simulation stopped
-                spin.wrap_up()
+    with stim:
+        time.sleep(stim.duration)

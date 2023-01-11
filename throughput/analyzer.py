@@ -22,7 +22,6 @@ def parse_file(filename):
     list_out = []
     list_exp = []
     line_count = 0
-    old_expected_count = 0
 
     # try:
     with open(filename, mode='r') as sim_file:  
@@ -34,15 +33,10 @@ def parse_file(filename):
             expected_count = int(row[0])
             actual_in_count = int(row[1])
             output_count = int(row[2])
-            if old_expected_count != expected_count:                
-                old_expected_count = expected_count
-                # print(f"{expected_count} {actual_in_count} {output_count} Not")
-            else: 
-                # print(f"{expected_count} {actual_in_count} {output_count} Yes")
-                list_in.append(actual_in_count)
-                list_out.append(output_count)
-                list_exp.append(expected_count)
-                line_count += 1
+            list_in.append(actual_in_count)
+            list_out.append(output_count)
+            list_exp.append(expected_count)
+            line_count += 1
     
     return line_count, list_in, list_out, list_exp
 
@@ -184,23 +178,24 @@ if __name__ == '__main__':
 
         plt.figure(figsize=(8, 6))
 
+
         if args.spif != "":
             spif_filename = args.run + "/stats/" + args.spif
             line_count, list_in, list_out, list_exp = parse_file(spif_filename)
-            averages = get_averages(line_count, list_exp, list_out)
-            spif_in, spif_out, spif_exp = get_trimmed_data(averages, line_count, list_in, list_out, list_exp)
-            plt.scatter(spif_exp, spif_in, label="SPIF in")
-            plt.scatter(spif_in, spif_out, label="SPIF out")
-            plot_saturation = True
+            # averages = get_averages(line_count, list_exp, list_out)
+            # spif_in, spif_out, spif_exp = get_trimmed_data(averages, line_count, list_in, list_out, list_exp)
+            # plt.scatter(spif_exp, spif_in, label="SPIF in")
+            plt.scatter(list_in, list_out, label="SPIF out")
+            # plot_saturation = True
             
         if args.enet != "":
             enet_filename = args.run + "/stats/" + args.enet
             line_count, list_in, list_out, list_exp = parse_file(enet_filename)
-            averages = get_averages(line_count, list_exp, list_out)
-            enet_in, enet_out, enet_exp = get_trimmed_data(averages, line_count, list_in, list_out, list_exp)
-            plt.scatter(enet_exp, enet_in, label="ENET in")
-            plt.scatter(enet_in, enet_out, label="ENET out")
-            plot_rupture = True
+            # averages = get_averages(line_count, list_exp, list_out)
+            # enet_in, enet_out, enet_exp = get_trimmed_data(averages, line_count, list_in, list_out, list_exp)
+            # plt.scatter(list_in, enet_in, label="ENET in")
+            plt.scatter(list_in, list_out, label="ENET out")
+            # plot_rupture = True
 
         if plot_saturation:
             sat_value, idx = get_saturation_value_2(spif_out)
@@ -218,17 +213,20 @@ if __name__ == '__main__':
                 # plt.axvline(x = rupture_in, linestyle='--', color = 'k', linewidth=0.5)
                 plt.axhline(y = rupture_out, linestyle='--', color = 'k', label = rupture_label)
 
-        min_ev = 60*1000
-        max_ev = 600*1000
+        min_ev = 10*1000
+        max_ev = 4*1000*1000
         diagonal = np.linspace(min_ev, max_ev, 1000)
         plt.plot(diagonal, diagonal, linestyle=':', color = 'm', label="Expected SpiNNaker Input")
+        
+        plt.xscale("log")
+        plt.yscale("log")
         plt.legend(loc='upper left')
         
         plt.title(f"SPIF vs ENET (w={int(args.weight)})")
         plt.xlabel("# of Events sent by Skirnir to SpiNNaker every Second")
         plt.ylabel("# of Events at SPIF's/ENET's Input/Output")
         plt.xlim([min_ev, max_ev])
-        plt.ylim([0, max_ev])
+        plt.ylim([min_ev, max_ev])
         plt.savefig(f"{args.run}/images/SPIFvsENET_w{int(args.weight)}.png")
 
         if args.summary:
