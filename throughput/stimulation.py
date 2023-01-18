@@ -43,8 +43,9 @@ class Stimulator:
         self.p_stream = multiprocessing.Process(target=self.launch_input_handler, args=())
 
         # SPIF/ENET parameters
-        self.use_spif = not args.simulate_spif
-        if self.use_spif:
+        self.mode = args.mode
+            
+        if self.mode[0] == 's':
             self.p_shift = 15
             self.y_shift = 0
             self.x_shift = 16
@@ -52,12 +53,14 @@ class Stimulator:
             self.sock_data = b""
             self.ip_addr = args.ip
             self.spif_port = args.port
-        else:
+            
+        if self.mode[0] == 'e':
             self.spikes = []
 
         # Stuff that needs to be done    
-        self.p_stream.start()        
-        if not self.use_spif:
+        self.p_stream.start()    
+        
+        if self.mode[0] == 'e':
             while self.port.value == 0:
                 time.sleep(0.1)
 
@@ -124,10 +127,11 @@ class Stimulator:
         
         time.sleep(30) # Waiting for SpiNNaker to be ready
 
-        if self.use_spif:
+        if self.mode[0] == 's':
             sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             print(f"Using SPIF ({self.ip_addr}) on port {self.spif_port}")
-        else:
+        
+        if self.mode[0] == 'e':
             connection = p.external_devices.SpynnakerLiveSpikesConnection(send_labels=[IN_POP_LABEL], local_port=None)
             self.port.value = connection.local_port
             connection.add_start_resume_callback(IN_POP_LABEL, self.start_handler)
@@ -139,7 +143,7 @@ class Stimulator:
             
             
 
-            if not self.use_spif and not self.running.value:
+            if self.mode[0] == 'e' and not self.running.value:
                 continue
 
             for i in range(pack_sz):   
@@ -154,11 +158,11 @@ class Stimulator:
                 x = e[0]
                 y = e[1]
 
-                if self.use_spif:
-
+                if self.mode[0] == 's':
                     packed = (self.no_timestamp + (polarity << self.p_shift) + (y << self.y_shift) + (x << self.x_shift))
                     self.sock_data += pack("<I", packed)
-                else:
+
+                if self.mode[0] == 'e':
                     self.spikes.append((y * self.width) + x)
 
                     
@@ -196,7 +200,7 @@ class Stimulator:
                 blink_count += 1
 
                 
-            if self.use_spif:                
+            if self.mode[0] == 's':               
                 if we_send_stuff:
                     sock.sendto(self.sock_data, (self.ip_addr, self.spif_port))
                 self.sock_data = b""
@@ -209,7 +213,7 @@ class Stimulator:
                 time.sleep(var_sleeper_ms/1000)
 
         print("No more events to be created")
-        if self.use_spif:
+        if self.mode[0] == 's':
             sock.close()
-        else:
+        if self.mode[0] == 'e':
             connection.close()

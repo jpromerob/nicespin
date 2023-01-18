@@ -121,7 +121,9 @@ def parse_args():
     parser.add_argument('-r', '--run', type= str, help="Simulation Run", default="")
     parser.add_argument('-s', '--spif', type= str, help="SPIF File", default="")
     parser.add_argument('-e', '--enet', type= str, help="ENET File", default="")
+    parser.add_argument('-b', '--board', type= int, help="Board Number (DATA)", default=1)
     parser.add_argument('-w', '--weight', type= float, help="Synaptic weights", default=72)
+    parser.add_argument('-t', '--tau', type= float, help="Tau refractory in [us]", default=0)
     parser.add_argument('-f', '--summary', action="store_true", help="Writing Summary File")
 
 
@@ -229,7 +231,7 @@ if __name__ == '__main__':
         plt.ylabel("# of Events at SPIF's/ENET's Input/Output")
         plt.xlim([min_ev, max_ev])
         plt.ylim([0, max_ev])
-        plt.savefig(f"{args.run}/images/SPIFvsENET_w{int(args.weight)}.png")
+        plt.savefig(f"{args.run}/images/SPIFvsENET_b{int(args.board)}_w{int(args.weight)}_t{int(args.tau)}.png")
 
         if args.summary:
             summary_file = args.run + "/summary.csv"

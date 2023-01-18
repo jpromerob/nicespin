@@ -59,34 +59,56 @@ class Computer:
         self.output_q = output_q
 
         # SPIF/ENET Parameters
-        self.use_spif = not args.simulate_spif
-        if self.use_spif:
-            self.spif_ip = args.ip
-            self.spif_port_out = 3332
-            self.pipe = args.port-3333
+        self.mode = args.mode
+
+        # Other Stuff
+        self.lut = []
+        
+        if self.mode[0] == 's':
             self.chip = (0,0)
+            self.pipe = args.port-3333
             self.sub_height = 8
-            self.sub_width = 16        
+            self.sub_width = 16  
+        if self.mode[1] == 's':
+            self.chip = (0,0)
+            self.spif_ip = args.ip
+            self.spif_port_out = 3332      
             self.p_shift = 15
             self.y_shift = 0
             self.x_shift = 16
             self.no_timestamp = 0x80000000
             self.sock_data = b""
-            self.lut = []
-        else:
+            
+        if self.mode[0] == 'e':
+            self.database_port = stim.port.value
+        if self.mode[1] == 'e':
             self.port_spin2cpu = int(random.randint(12000,15000))
 
         # SNN Parameters
         self.width = args.width
         self.height = args.height
-        self.weight = args.weight
-        self.database_port = stim.port.value
+        self.weight = args.weight/10
+        self.direct = args.direct
+
+        # Cell Parameters
+        self.tau_refrac = args.tau_ref/1000
+        self.celltype = p.IF_curr_exp
+        self.cell_params = {'tau_m': 20.0,
+                            'tau_syn_E': 5.0,
+                            'tau_syn_I': 5.0,
+                            'v_rest': -65.0,
+                            'v_reset': -65.0,
+                            'v_thresh': -50.0,
+                            'tau_refrac': self.tau_refrac, # 0.1 originally
+                            'cm': 1,
+                            'i_offset': 0.0
+                            }
 
         # Remote receiver's parameters
         self.remote_receiver = args.remote_receiver
         if self.remote_receiver:
             self.pc_ip = "172.16.222.199"
-            self.pc_port = 3331
+            self.pc_port = 3000
             self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
         # Stats 
@@ -110,59 +132,81 @@ class Computer:
         # Set Inputs
         ###############################################################################################################
 
+        print("\n\n\n\n\n")
+
         IN_POP_LABEL = "input"
-        if self.use_spif:
+        if self.mode[0] == 's':
+            print("Using SPIFRetinaDevice")
             input_pop = p.Population(self.width * self.height, p.external_devices.SPIFRetinaDevice(
                                     pipe=self.pipe, width=self.width, height=self.height, 
                                     sub_width=self.sub_width, sub_height=self.sub_height, 
                                     chip_coords=self.chip), label=IN_POP_LABEL)
         else:
+            print("Using SpikeInjector")
             input_pop = p.Population(self.width * self.height, p.external_devices.SpikeInjector(
                                     database_notify_port_num=self.database_port), label=IN_POP_LABEL,
                                     structure=Grid2D(self.width / self.height))
 
-
-        ###############################################################################################################
-        # Set SNN
-        ###############################################################################################################
-
-        # Convolution
-        kernel = np.ones((1, 1))*(self.weight/10)
-
-        convolution = p.ConvolutionConnector(kernel_weights=kernel)
-        out_width, out_height = convolution.get_post_shape((self.width, self.height))
-
-        # Target population
-        POP_LABEL = "target"
-        target_pop = p.Population(
-            out_width * out_height, p.IF_curr_exp(),
-            structure=p.Grid2D(out_width / out_height), label=POP_LABEL)
-
-        # Projection from Input to Target 
-        p.Projection(input_pop, target_pop, convolution, p.Convolution())
-
         
+        ###############################################################################################################
+        # SNN
+        ###############################################################################################################
+
+        if self.direct:
+            
+            # Output Mapping using LUT
+            self.lut = create_lut(self.width, self.height, self.npc_x, self.npc_y)
+
+            PRE_OUT_POP_LABEL = IN_POP_LABEL 
+            pre_out_pop = input_pop
+
+        else:
+
+            # Convolution
+            kernel = np.ones((1, 1))*(self.weight)
+
+            convolution = p.ConvolutionConnector(kernel_weights=kernel)
+            out_width, out_height = convolution.get_post_shape((self.width, self.height))
+
+            # Target population
+            MID_POP_LABEL = "middle"
+            middle_pop = p.Population(
+                out_width * out_height, p.IF_curr_exp(),
+                structure=p.Grid2D(out_width / out_height), label=MID_POP_LABEL)
+
+            # Projection from Input to Middle 
+            p.Projection(input_pop, middle_pop, convolution, p.Convolution())
+
+            # Output Mapping using LUT
+            self.lut = create_lut(out_width, out_height, self.npc_x, self.npc_y)
+            
+            PRE_OUT_POP_LABEL = MID_POP_LABEL 
+            pre_out_pop = middle_pop
+
+
         ###############################################################################################################
         # Set Outputs
         ###############################################################################################################
         
         OUT_POP_LABEL = "output"
-        if self.use_spif:
-            conn = p.external_devices.SPIFLiveSpikesConnection([POP_LABEL], self.spif_ip, self.spif_port_out)
-            conn.add_receive_callback(POP_LABEL, self.recv_spif)
 
-            spif_output = p.Population(None, p.external_devices.SPIFOutputDevice(
+        if self.mode[1] == 's':
+            print("Using SPIFOutputDevice")
+            conn = p.external_devices.SPIFLiveSpikesConnection([PRE_OUT_POP_LABEL], self.spif_ip, self.spif_port_out)
+            conn.add_receive_callback(PRE_OUT_POP_LABEL, self.recv_spif)
+
+            output_pop = p.Population(None, p.external_devices.SPIFOutputDevice(
                 database_notify_port_num=conn.local_port, chip_coords=self.chip), label=OUT_POP_LABEL)
-            p.external_devices.activate_live_output_to(target_pop, spif_output)
+            p.external_devices.activate_live_output_to(pre_out_pop, output_pop)
             
-            # Output Mapping using LUT
-            self.lut = create_lut(out_width, out_height, self.npc_x, self.npc_y)
 
         else:
-            conn = p.external_devices.SpynnakerLiveSpikesConnection(receive_labels=[POP_LABEL], local_port=self.port_spin2cpu)
-            _ = p.external_devices.activate_live_output_for(target_pop, database_notify_port_num=conn.local_port)
-            conn.add_receive_callback(POP_LABEL, self.recv_enet)
+            print("Using SpynnakerLiveSpikesConnection")
+            conn = p.external_devices.SpynnakerLiveSpikesConnection(receive_labels=[PRE_OUT_POP_LABEL], local_port=self.port_spin2cpu)
+            _ = p.external_devices.activate_live_output_for(pre_out_pop, database_notify_port_num=conn.local_port)
+            conn.add_receive_callback(PRE_OUT_POP_LABEL, self.recv_enet)
         
+        print("\n\n\n\n\n")
 
 
     def __exit__(self, e, b, t):
