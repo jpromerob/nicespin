@@ -94,13 +94,16 @@ def get_averages(line_count, list_exp, list_out):
 
 def format_plot(args, title, limit, units):
     
+
     diagonal = np.linspace(0, limit, 1000)
     plt.plot(diagonal, diagonal, linestyle=':', color = 'm', label="Expected SpiNNaker Input")
     plt.legend(loc='upper left')
     
+
     plt.title(title)
-    plt.xlabel(f"# of {units} sent by Skirnir to SpiNNaker every Second")
-    plt.ylabel(f"# of {units} at SpiNNaker's Output")
+    plt.xlabel(f"# of {units} sent by Skirnir (to SpiNNaker)")
+    plt.ylabel(f"# of {units} received at Skirnir (from SpiNNaker)")
+    
     plt.xlim([0, limit])
     plt.ylim([0, limit])
     # plt.show()
@@ -139,33 +142,39 @@ if __name__ == '__main__':
             if filename.find('.csv')> -1:
                 idx_x = filename.find('x') + 1
                 idx_y = filename.find('y') + 1
-                idx_w = filename.find('w') + 1
                 idx_l = filename.find('l') + 1
-                idx_t = filename.find('t') + 1
                 idx_b = filename.find('b') + 1
                 idx_d = filename.find('2023') + 1
 
                 m = filename[0:2]
-                c = filename[2] # connection
                 x = int(filename[idx_x:idx_y-2])
-                y = int(filename[idx_y:idx_w-2])
-                w = int(filename[idx_w:idx_l-2])
-                l = int(filename[idx_l:idx_t-2])
-                t = int(filename[idx_t:idx_b-2])
+                y = int(filename[idx_y:idx_l-2])
+                l = int(filename[idx_l:idx_b-2])
                 b = int(filename[idx_b:idx_d-2])
+                d = filename[idx_d-1:-4]
+
+                # pdb.set_trace()
 
                 file_path = stats_path + "/" + filename
                 line_count, list_in, list_out, list_exp = parse_file(file_path)     
                 array_in, array_out, array_exp = smooth_lines(line_count, list_in, list_out, list_exp)
-                this_dict = dict(mode=m, connection=c, width=x, height=y, length=l, weight=w, tau=t, board=b, 
+                this_dict = dict(mode=m, width=x, height=y, length=l, board=b, date=d,
                                 file_path=file_path, line_count=line_count, array_in=array_in, array_out=array_out)
                 table.append(this_dict)
 
+
+    limit = 200 # kev/s
+    scaler = 1000 # so it's en kev/s
+    units = "kev/s"
 
     ss_in_all = np.zeros((1,))
     se_in_all = np.zeros((1,))
     ss_out_all = np.zeros((1,))
     se_out_all = np.zeros((1,))
+    es_in_all = np.zeros((1,))
+    ee_in_all = np.zeros((1,))
+    es_out_all = np.zeros((1,))
+    ee_out_all = np.zeros((1,))
     
     for element in table:
         if element["mode"] == "ss":
@@ -174,19 +183,29 @@ if __name__ == '__main__':
         if element["mode"] == "se":
             se_in_all=np.concatenate((se_in_all, element["array_in"]), axis=0)
             se_out_all=np.concatenate((se_out_all, element["array_out"]), axis=0)
+        if element["mode"] == "es":
+            es_in_all=np.concatenate((es_in_all, element["array_in"]), axis=0)
+            es_out_all=np.concatenate((es_out_all, element["array_out"]), axis=0)
+        if element["mode"] == "ee":
+            ee_in_all=np.concatenate((ee_in_all, element["array_in"]), axis=0)
+            ee_out_all=np.concatenate((ee_out_all, element["array_out"]), axis=0)
+    
 
-    # pdb.set_trace()
 
-    idx = 0
-    limit = 800 # kev/s
-    scaler = 1000 # so it's en kev/s
-    units = "kev/s"
-    while True:
-        if idx == 1:    
-            plt.figure(figsize=(8,8))
+    plt.figure(figsize=(8,8))
+    plt.scatter(ss_in_all/scaler, ss_out_all/scaler, label="SPIF --> ♲ --> SPIF")
+    plt.scatter(se_in_all/scaler, se_out_all/scaler, label="SPIF --> ♲ --> ENET")
+    plt.scatter(es_in_all/scaler, es_out_all/scaler, label="ENET --> ♲ --> SPIF")
+    plt.scatter(ee_in_all/scaler, ee_out_all/scaler, label="ENET --> ♲ --> ENET")
+    title = f"All_Modes_Compared"
+    format_plot(args, title, limit, units)
+    plt.close()
+
+    print_all = False
+    if print_all:
+
         for element in table:    
-            if idx == 0:    
-                plt.figure(figsize=(8,8))
+            plt.figure(figsize=(8,8))
             
             mode = "SPIF --> ♲ --> "
             if element['mode'] == "se":
@@ -199,17 +218,9 @@ if __name__ == '__main__':
             y = np.asarray(element["array_out"], dtype=int)/scaler
             plt.scatter(x, y, label=lgnd, alpha=0.3)
             
-            
-            if idx == 0:
-                title = f"{element['mode']}{element['connection']}_x{element['width']}_y{element['height']}_l{element['length']}_w{element['weight']}_t{element['tau']}_b{element['board']}"
-                format_plot(args, title, limit, units)
-                plt.close()
-        
-        if idx == 1:
-            title = f"Comparison"
+            title = f"{element['mode']}_x{element['width']}_y{element['height']}_l{element['length']}_b{element['board']}_{element['date']}"
             format_plot(args, title, limit, units)
-            break
-        idx += 1
+            plt.close()
         
         
 

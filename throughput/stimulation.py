@@ -19,18 +19,14 @@ class Stimulator:
 
         # SNN parameters
         self.width = args.width
-        self.height = args.height       
+        self.height = args.height  
 
         # Other Stuff
         self.bin = args.bin    
-        self.min_freq = 25
-        self.max_freq = 375
-        self.step = 5
-        self.points = 30
-        self.time_per_point = self.points*self.bin # seconds
-        self.nb_steps = int(1+(self.max_freq-self.min_freq)/self.step)
-        self.spin_waiter = args.spin_waiter
-        self.duration = self.time_per_point*self.nb_steps + self.spin_waiter
+        self.t_sleeper_array = np.logspace(1.9,-0.9, num=200, base=10) #ms
+        self.spin_waiter = 30
+        self.time_per_point = 2*self.bin
+        self.duration = self.time_per_point*len(self.t_sleeper_array) + self.spin_waiter
 
         # Infrastructure parameters
         self.input_q = input_q
@@ -78,24 +74,17 @@ class Stimulator:
 
 
     def event_generator(self):  
-        vert_motion  = False
-        sq_len = min(self.width, self.height)
-
-        while True: 
-            
-            freq_list = np.linspace(self.min_freq,self.max_freq,self.nb_steps)
-            
-            for freq in freq_list:
+        
+        while True:
+            for t_sleeper in self.t_sleeper_array:
                 t_start = time.time()
                 while True:
                     cx = 0
                     cy = 0
-                    for y in range(sq_len):
-                        for x in range(sq_len):
-                            # print(f"event at ({x},{y})")
+                    for y in range(self.height):
+                        for x in range(self.width):
                             if x < self.width and y < self.height:
-                                yield ((x,y)), (8*freq)
-                                
+                                yield (x,y), t_sleeper
                     t_current =time.time()
                     if t_current >= t_start + self.time_per_point:
                         break
@@ -103,28 +92,12 @@ class Stimulator:
 
     def launch_input_handler(self):
 
-
+        # Create event generator
         ev_gen = self.event_generator() 
-
-        IN_POP_LABEL = "input"
-
-        polarity = 1
-        ev_count = 0     
-        var_sleeper_ms = 50.1    
-
-        
-        blink_count = 0
-        t_start = time.time()
-        t_last_blink = time.time()
-        going_up = False
-        step = 1
-        min_step = 0.0001
-        pack_sz = 16*16
-        old_freq = 10
-        we_send_stuff = False
-        
+        IN_POP_LABEL = "input"        
         time.sleep(self.spin_waiter) # Waiting for SpiNNaker to be ready
 
+        # Setting Communication Channels (sockets, ports, etc)
         if self.mode[0] == 's':
             sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             print(f"Using SPIF ({self.ip_addr}) on port {self.spif_port}")
@@ -137,79 +110,51 @@ class Stimulator:
             print(f"Using ENET on port {self.port.value}")
 
 
+        # Looping until SpiNNaker ends simulation
+        t_start = time.time()
+        ev_count = 0
         while self.end_of_sim.value == 0:
-            
-            
 
             if self.mode[0] == 'e' and not self.running.value:
                 continue
 
+            # Pack as many events as indicated (pack_sz)
+            pack_sz = 16*16
             for i in range(pack_sz):   
-                e, freq = next(ev_gen)
-                if old_freq != freq:
-                    var_sleeper_ms = 50.1
-                    step = 10
-                    old_freq = freq
-                    going_up = False
-                    time.sleep(self.bin*2) #To get rid of 'old' events in the neck
-                
+
+                e, t_sleeper = next(ev_gen)                
                 x = e[0]
                 y = e[1]
+                ev_count +=1
 
                 if self.mode[0] == 's':
+                    polarity = 1
                     packed = (self.no_timestamp + (polarity << self.p_shift) + (y << self.y_shift) + (x << self.x_shift))
                     self.sock_data += pack("<I", packed)
 
                 if self.mode[0] == 'e':
                     self.spikes.append((y * self.width) + x)
 
-                    
                 t_current = time.time()  
                 if t_current >= t_start + self.bin:
                     t_start = t_current
                     ev_per_s = int(ev_count/self.bin)
-                    expected_count = int(freq*pack_sz)
-                    
-                    # Error in Ev Count needs to be within the 5% margin to be reported
-                    error = 100*abs(ev_per_s-expected_count)/expected_count
-                    if error < 5:
-                        # print(f"Input -->\tT:\t{ev_per_s}\t[T]:\t{expected_count}\te:\t{int(error*10)/10}%\tf:\t{freq}")
-                        self.input_q.put((ev_per_s, expected_count), False)
-                        we_send_stuff = True
-                    else:
-                        we_send_stuff = False
-                        # print(f"...-->\tT:\t{ev_per_s}\t[T]:\t{expected_count}\te:\t{int(error*10)/10}%\tf:\t{freq}\tvs:\t{var_sleeper_ms}")
-                        
-                        
-                    
-                    if ev_per_s > expected_count:
-                        if not going_up and step >= min_step:
-                            step = step / 5
-                            going_up = True
-                        var_sleeper_ms += step
-                    else:
-                        if going_up and step >= min_step:
-                            step = step / 5
-                            going_up = False
-                        var_sleeper_ms -= step
-                    
+                    expected_count = int((1000/t_sleeper) * pack_sz)
+                    self.input_q.put((ev_per_s, expected_count), False)
                     ev_count = 0
-                ev_count +=1
-                blink_count += 1
-
-                
-            if self.mode[0] == 's':               
-                if we_send_stuff:
-                    sock.sendto(self.sock_data, (self.ip_addr, self.spif_port))
+            
+            # Send Packets of events
+            if self.mode[0] == 's':
+                sock.sendto(self.sock_data, (self.ip_addr, self.spif_port))
                 self.sock_data = b""
-            elif self.spikes:                
-                if we_send_stuff:
-                    connection.send_spikes(IN_POP_LABEL, self.spikes)
+            elif self.spikes:
+                connection.send_spikes(IN_POP_LABEL, self.spikes)
                 self.spikes = []
 
-            if var_sleeper_ms > 0:
-                time.sleep(var_sleeper_ms/1000)
+            # Sleep a bit
+            time.sleep(t_sleeper/1000)
 
+        # Close Communication Channels
         print("No more events to be created")
         if self.mode[0] == 's':
             sock.close()
