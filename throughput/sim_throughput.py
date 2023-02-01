@@ -1,46 +1,15 @@
 import multiprocessing
-import argparse
 import sys, os, time
 import pdb
 import datetime
 
 
-
+from utils import *
 from stimulation import *
+from streamulation import *
 from computation import *
 from visualization import *
 
-
-
-spin_spif_map = {"1": "172.16.223.2", 
-                 "37": "172.16.223.106", 
-                 "43": "172.16.223.98",
-                 "13": "172.16.223.10",
-                 "121": "172.16.223.122",
-                 "129": "172.16.223.130"}
-
-
-# python3 /home/juan/nicespin/throughput/sim_throughput.py -x 40 -y 40 -n 4 -b 1 -w 80 -m es
-
-def get_filename(args):
-    
-    current_datetime = datetime.datetime.now()
-
-    if args.direct:
-        mode = args.mode + "d"
-    else:
-        mode = args.mode + "c" # c for 'convolution'
-
-    filename = args.mode
-    filename += "_x" + str(args.width)
-    filename += "_y" + str(args.height)
-    filename += "_w" + str(args.weight)
-    filename += "_t" + str(args.tau_ref)
-    filename += "_b" + str(args.board)
-    filename += current_datetime.strftime("_%Y%m%d_%Hh%M") +".csv"
-    print("\n\n\nSaving simulation results in " + filename + "\n\n\n")
-
-    return filename
 
 def parse_args():
 
@@ -52,20 +21,34 @@ def parse_args():
     parser.add_argument('-n', '--bin', type=int, help="Time bin in [s] (for event counts)", default=4)
     parser.add_argument('-i', '--ip', type= str, help="SPIF's IP address", default="172.16.223.2")
     parser.add_argument('-p', '--port', type=int, help="SPIF's port", default=3333)
-    parser.add_argument('-r', '--remote-receiver', action="store_true", help="Remote Receiver")
     parser.add_argument('-x', '--width', type=int, help="Image size (in px)", default=40)
     parser.add_argument('-y', '--height', type=int, help="Image size (in px)", default=40)
+    parser.add_argument('-l', '--length', type=int, help="Unit size in px", default=40)
+    parser.add_argument('-d', '--direct', action="store_true", help="Direct connection Input-->Output")
+    parser.add_argument('-z', '--spin-waiter', type=int, help="Time waiting for SpiNNaker to be ready", default=30)
+    
     parser.add_argument('-w', '--weight', type=int, help="Kernel Weights", default=80)
     parser.add_argument('-f', '--tau-ref', type=int, help="Tau Refractory in [us]", default=100)
-    parser.add_argument('-d', '--direct', action="store_true", help="Direct connection Input-->Output")
+    parser.add_argument('-s', '--stream', action="store_true", help="SPIF streaming")
+    parser.add_argument('-g', '--do-mapping', action="store_true", help="Create Mapping Files")
+    parser.add_argument('-r', '--remote-receiver', action="store_true", help="Remote Receiver")
 
 
     return parser.parse_args()
 
-
 if __name__ == '__main__':
 
+
     args = parse_args()
+
+    filename = get_filename(args)
+
+    # Create mapping files 
+    if args.stream:
+        if args.do_mapping:
+            print("Creating Mapping Files ... ")
+            os.system(f"python3 ~/nicespin/throughput/mapping.py -x {args.width} -y {args.height} -l {args.length}")
+
     try:
         args.ip = spin_spif_map[args.board]
         rig_command = f"rig-power 172.16.223.{int(args.board)-1}"
@@ -77,7 +60,6 @@ if __name__ == '__main__':
         quit()
 
 
-    filename = get_filename(args)
     
     manager = multiprocessing.Manager()
     end_of_sim = manager.Value('i', 0)
@@ -85,7 +67,10 @@ if __name__ == '__main__':
     output_q = multiprocessing.Queue() # events
 
 
-    stim = Stimulator(args, input_q, end_of_sim)
+    if args.stream:
+        stim = Streamulator(args, input_q, end_of_sim)
+    else:
+        stim = Stimulator(args, input_q, end_of_sim)
     spin = Computer(args, output_q, stim)
     disp = Display(args, input_q, output_q, end_of_sim, filename)
 

@@ -215,13 +215,12 @@ class Computer:
 
     def recv_enet(self, label, t_spike, neuron_ids):
 
-        for n_id in neuron_ids:     
-        # np_neuron_ids = np.array(neuron_ids)
-        # for i in range(np_neuron_ids.shape[0]):       
-            self.update_stats()
+        self.update_stats_batch(len(neuron_ids))
+        # for n_id in neuron_ids:           
+        #     self.update_stats()
             
-            if self.remote_receiver:
-                time.sleep(0.000001)
+        #     if self.remote_receiver:
+        #         time.sleep(0.000001)
 
         
         self.publish_stats()
@@ -229,23 +228,30 @@ class Computer:
 
     def recv_spif(self, label, spikes):
 
-        np_spikes = np.array(spikes)
-        for i in range(np_spikes.shape[0]):
-            self.update_stats()
+        self.update_stats_batch(len(spikes))
+        # np_spikes = np.array(spikes)
+        # for i in range(np_spikes.shape[0]):
+        #     self.update_stats()
 
-            if self.remote_receiver:
-                x = self.lut[np_spikes[i]][0]
-                y = self.lut[np_spikes[i]][1]
-                polarity = 1
-                packed = (self.no_timestamp + (polarity << self.p_shift) + (y << self.y_shift) + (x << self.x_shift))
-                self.sock_data += pack("<I", packed)
-                if i+1 == np_spikes.shape[0]:
-                    self.sock.sendto(self.sock_data, (self.pc_ip, self.pc_port))
-                    self.sock_data = b""
+        #     if self.remote_receiver:
+        #         x = self.lut[np_spikes[i]][0]
+        #         y = self.lut[np_spikes[i]][1]
+        #         polarity = 1
+        #         packed = (self.no_timestamp + (polarity << self.p_shift) + (y << self.y_shift) + (x << self.x_shift))
+        #         self.sock_data += pack("<I", packed)
+        #         if i+1 == np_spikes.shape[0]:
+        #             self.sock.sendto(self.sock_data, (self.pc_ip, self.pc_port))
+        #             self.sock_data = b""
         
 
         self.publish_stats()
     
+
+    def update_stats_batch(self, count):
+        if not self.first_ev_sent:
+            self.first_ev_sent = True
+            self.t_start = time.time()
+        self.ev_count += count
 
     def update_stats(self):
         if not self.first_ev_sent:

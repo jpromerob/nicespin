@@ -12,8 +12,6 @@ import os
 import ctypes
 from time import sleep
 import pyNN.spiNNaker as p
-os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
-import pygame
 
 
 class Stimulator:
@@ -31,7 +29,8 @@ class Stimulator:
         self.points = 30
         self.time_per_point = self.points*self.bin # seconds
         self.nb_steps = int(1+(self.max_freq-self.min_freq)/self.step)
-        self.duration = self.time_per_point*self.nb_steps
+        self.spin_waiter = args.spin_waiter
+        self.duration = self.time_per_point*self.nb_steps + self.spin_waiter
 
         # Infrastructure parameters
         self.input_q = input_q
@@ -95,7 +94,7 @@ class Stimulator:
                         for x in range(sq_len):
                             # print(f"event at ({x},{y})")
                             if x < self.width and y < self.height:
-                                yield ((x,y)), (freq)
+                                yield ((x,y)), (8*freq)
                                 
                     t_current =time.time()
                     if t_current >= t_start + self.time_per_point:
@@ -120,12 +119,11 @@ class Stimulator:
         going_up = False
         step = 1
         min_step = 0.0001
-        max_k_evs_ms = 1000*min(self.width, self.height)**2
         pack_sz = 16*16
         old_freq = 10
         we_send_stuff = False
         
-        time.sleep(30) # Waiting for SpiNNaker to be ready
+        time.sleep(self.spin_waiter) # Waiting for SpiNNaker to be ready
 
         if self.mode[0] == 's':
             sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -170,7 +168,7 @@ class Stimulator:
                 if t_current >= t_start + self.bin:
                     t_start = t_current
                     ev_per_s = int(ev_count/self.bin)
-                    expected_count = int(freq*min(self.width,self.height)**2)
+                    expected_count = int(freq*pack_sz)
                     
                     # Error in Ev Count needs to be within the 5% margin to be reported
                     error = 100*abs(ev_per_s-expected_count)/expected_count
@@ -184,7 +182,7 @@ class Stimulator:
                         
                         
                     
-                    if ev_per_s > int(max_k_evs_ms*freq/1000):
+                    if ev_per_s > expected_count:
                         if not going_up and step >= min_step:
                             step = step / 5
                             going_up = True

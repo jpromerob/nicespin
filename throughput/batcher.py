@@ -19,23 +19,21 @@ if __name__ == '__main__':
 
     args = parse_args()
 
-    tau_list = []
+    tau = 3
+
+    wh = 40
     if args.board == 13:
-        tau_list = [0, 80, 160]
+        length_array = [40]
     if args.board == 37:
-        tau_list = [80, 160, 0]
+        length_array = [40]
     if args.board == 43:
-        tau_list = [160, 0, 80]
+        length_array = [40]
+    weight = 0
 
     commands = []
-    for weight in [80]:
-        for tau in tau_list:
-            for mode in ['ss','se']:
-                commands.append(f"python3 ~/nicespin/throughput/sim_throughput.py -n 4 -b {args.board} -w {weight} -m {mode} -f {tau}")
-            for mode in ['ee','es']:
-                commands.append(f"python3 ~/nicespin/throughput/sim_throughput.py -n 4 -b {args.board} -w {weight} -m {mode} -f {tau}")
-            for mode in ['ee','es']:
-                commands.append(f"python3 ~/nicespin/throughput/sim_throughput.py -n 4 -b {args.board} -w {weight} -m {mode} -f {tau} -d")
+    for length in length_array:
+        for mode in ['ss','se']:
+            commands.append(f"python3 ~/nicespin/throughput/sim_throughput.py -n 4 -x {wh} -y {wh} -b {args.board} -w {weight} -m {mode} -l {length} -f {tau} -d")
     
     
     for cmd in commands:
