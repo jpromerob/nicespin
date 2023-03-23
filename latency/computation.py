@@ -103,63 +103,49 @@ class Computer:
         p.set_number_of_neurons_per_core(p.IF_curr_exp, (self.npc_x, self.npc_y))
 
 
-        ###############################################################################################################
-        # Set Inputs
-        ###############################################################################################################
+
+
+        print("\n\n\n\n\n")
 
         IN_POP_LABEL = "input"
         if self.use_spif:
+            print("Using SPIFRetinaDevice")
             input_pop = p.Population(self.width * self.height, p.external_devices.SPIFRetinaDevice(
                                     pipe=self.pipe, width=self.width, height=self.height, 
                                     sub_width=self.sub_width, sub_height=self.sub_height, 
                                     chip_coords=self.chip), label=IN_POP_LABEL)
         else:
+            print("Using SpikeInjector")
             input_pop = p.Population(self.width * self.height, p.external_devices.SpikeInjector(
                                     database_notify_port_num=self.database_port), label=IN_POP_LABEL,
                                     structure=Grid2D(self.width / self.height))
 
 
-        ###############################################################################################################
-        # Set SNN
-        ###############################################################################################################
+        self.lut = create_lut(self.width, self.height, self.npc_x, self.npc_y)
 
-        # Convolution
-        kernel = np.ones((1, 1))*(self.weight/10)
-
-        convolution = p.ConvolutionConnector(kernel_weights=kernel)
-        out_width, out_height = convolution.get_post_shape((self.width, self.height))
-
-        # Output Mapping using LUT
-        self.lut = create_lut(out_width, out_height, self.npc_x, self.npc_y)
-
-        # Target population
-        POP_LABEL = "target"
-        target_pop = p.Population(
-            out_width * out_height, p.IF_curr_exp(),
-            structure=p.Grid2D(out_width / out_height), label=POP_LABEL)
-            
-        # Projection from Input to Target 
-        p.Projection(input_pop, target_pop, convolution, p.Convolution())
-
-        
         ###############################################################################################################
         # Set Outputs
         ###############################################################################################################
         
         OUT_POP_LABEL = "output"
-        if self.use_spif:
-            conn = p.external_devices.SPIFLiveSpikesConnection([POP_LABEL], self.spif_ip, self.spif_port_out)
-            conn.add_receive_callback(POP_LABEL, self.recv_spif)
 
-            spif_output = p.Population(None, p.external_devices.SPIFOutputDevice(
+        if self.use_spif:
+            print("Using SPIFOutputDevice")
+            conn = p.external_devices.SPIFLiveSpikesConnection([IN_POP_LABEL], self.spif_ip, self.spif_port_out)
+            conn.add_receive_callback(IN_POP_LABEL, self.recv_spif)
+
+            output_pop = p.Population(None, p.external_devices.SPIFOutputDevice(
                 database_notify_port_num=conn.local_port, chip_coords=self.chip), label=OUT_POP_LABEL)
-            p.external_devices.activate_live_output_to(target_pop, spif_output)
+            p.external_devices.activate_live_output_to(input_pop, output_pop)
+            
 
         else:
-            conn = p.external_devices.SpynnakerLiveSpikesConnection(receive_labels=[POP_LABEL], local_port=self.port_spin2cpu)
-            _ = p.external_devices.activate_live_output_for(target_pop, database_notify_port_num=conn.local_port)
-            conn.add_receive_callback(POP_LABEL, self.recv_enet)
+            print("Using SpynnakerLiveSpikesConnection")
+            conn = p.external_devices.SpynnakerLiveSpikesConnection(receive_labels=[IN_POP_LABEL], local_port=self.port_spin2cpu)
+            _ = p.external_devices.activate_live_output_for(input_pop, database_notify_port_num=conn.local_port)
+            conn.add_receive_callback(IN_POP_LABEL, self.recv_enet)
         
+        print("\n\n\n\n\n")
 
 
     def __exit__(self, e, b, t):

@@ -29,9 +29,9 @@ def parse_args():
     parser.add_argument('-p', '--port', type=int, help="SPIF's port", default=3333)
     parser.add_argument('-r', '--remote-receiver', action="store_true", help="Remote Receiver")
     parser.add_argument('-s', '--simulate-spif', action="store_true", help="Simulate SPIF")
-    parser.add_argument('-x', '--width', type=int, help="Image size (in px)", default=40)
-    parser.add_argument('-y', '--height', type=int, help="Image size (in px)", default=40)
-    parser.add_argument('-w', '--weight', type=int, help="Kernel Weights", default=7)
+    parser.add_argument('-x', '--width', type=int, help="Image size (in px)", default=16)
+    parser.add_argument('-y', '--height', type=int, help="Image size (in px)", default=16)
+    parser.add_argument('-w', '--weight', type=int, help="Kernel Weights", default=70)
     parser.add_argument('-t', '--runtime', type=int, help="Run Time, in seconds", default=30)
     parser.add_argument('-e', '--timestep', type=int, help="SpiNNaker Timestep in [us]", default=1000)
 

@@ -66,8 +66,6 @@ class Stimulator:
 
 
     def event_generator(self):  
-        vert_motion  = False
-        sq_len = min(self.width, self.height)
 
         while True: 
             x = random.randint(0,self.width-1)
@@ -85,6 +83,7 @@ class Stimulator:
         
         time.sleep(30) # Waiting for SpiNNaker to be ready
 
+            
         if self.use_spif:
             sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             print(f"Using SPIF ({self.ip_addr}) on port {self.spif_port}")
@@ -97,9 +96,7 @@ class Stimulator:
 
 
         while self.end_of_sim.value == 0:
-            
-            
-
+       
             if not self.use_spif and not self.running.value:
                 continue
  
@@ -130,7 +127,7 @@ class Stimulator:
             t_current = time.time()  
             # print(f"Sent ({x},{y}) at t={t_current}")
             self.input_q.put((x,y,t_current))
-            time.sleep(0.005)
+            time.sleep(0.010)
 
         print("No more events to be created")
         if self.use_spif:

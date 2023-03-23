@@ -50,9 +50,12 @@ if __name__ == '__main__':
 
     print(f"ENET Mean Latency: {mean_enet} ms ({len(enet_summary)})")
     print(f"SPIF Mean Latency: {round(spif_summary.mean(),3)} ms ({len(spif_summary)})")
-    plt.boxplot(enet_summary, positions=[1], showfliers=False)
-    plt.boxplot(spif_summary, positions=[2], showfliers=False)
-    plt.axhline(y = (mean_enet+mean_spif)/2, linestyle='--', color = 'k', linewidth=0.5)
+    
+
+    res_enet = plt.boxplot(enet_summary, positions=[1], showfliers=False)
+    res_spif = plt.boxplot(spif_summary, positions=[2], showfliers=False)
+    #plt.axhline(y = (mean_enet), linestyle='--', color = 'k', linewidth=0.5)
+    #plt.axhline(y = (mean_spif), linestyle='--', color = 'k', linewidth=0.5)
 
     
     plt.xticks([1,2],[f"ENET\n({mean_enet} ± {stdv_enet} ms)", f"SPIF\n({mean_spif} ± {stdv_spif} ms)"])
@@ -67,8 +70,8 @@ if __name__ == '__main__':
 
 
     plt.clf()
-    plt.hist(x=enet_summary, bins=50, range=(0, 5), color="#6600CC", alpha=0.7, rwidth=0.85, label='ENET')
-    plt.hist(x=spif_summary, bins=50, range=(0, 5), color="#009900", alpha=0.7, rwidth=0.85, label='SPIF')
+    plt.hist(x=enet_summary, bins=50, range=(0, 2), color="#6600CC", alpha=0.7, rwidth=0.85, label='ENET')
+    plt.hist(x=spif_summary, bins=50, range=(0, 2), color="#009900", alpha=0.7, rwidth=0.85, label='SPIF')
     plt.xlabel("Latency [ms]")
     plt.ylabel("# of Events")
     plt.title(f"SPIF vs ENET")
