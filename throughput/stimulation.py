@@ -23,7 +23,7 @@ class Stimulator:
 
         # Other Stuff
         self.bin = args.bin    
-        self.t_sleeper_array = np.logspace(1.9,-0.9, num=200, base=10) #ms
+        self.t_sleeper_array = np.logspace(3.9,-1.9, num=400, base=10) # [0.1, 0.01, 0.001] #
         self.spin_waiter = 30
         self.time_per_point = 2*self.bin
         self.duration = self.time_per_point*len(self.t_sleeper_array) + self.spin_waiter
@@ -130,6 +130,7 @@ class Stimulator:
                 if self.mode[0] == 's':
                     polarity = 1
                     packed = (self.no_timestamp + (polarity << self.p_shift) + (y << self.y_shift) + (x << self.x_shift))
+                    # packed = self.no_timestamp + (y*self.width) + x
                     self.sock_data += pack("<I", packed)
 
                 if self.mode[0] == 'e':

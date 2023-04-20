@@ -101,8 +101,8 @@ def format_plot(args, title, limit, units):
     
 
     plt.title(title)
-    plt.xlabel(f"# of {units} sent by Skirnir (to SpiNNaker)")
-    plt.ylabel(f"# of {units} received at Skirnir (from SpiNNaker)")
+    plt.xlabel(f"# of {units} sent by PC (to SpiNNaker)")
+    plt.ylabel(f"# of {units} received at PC (from SpiNNaker)")
     
     plt.xlim([0, limit])
     plt.ylim([0, limit])
@@ -155,16 +155,17 @@ if __name__ == '__main__':
 
                 # pdb.set_trace()
 
-                file_path = stats_path + "/" + filename
-                line_count, list_in, list_out, list_exp = parse_file(file_path)     
-                array_in, array_out, array_exp = smooth_lines(line_count, list_in, list_out, list_exp)
-                this_dict = dict(mode=m, width=x, height=y, length=l, board=b, date=d,
-                                file_path=file_path, line_count=line_count, array_in=array_in, array_out=array_out)
-                table.append(this_dict)
+                if b != 1:
+                    file_path = stats_path + "/" + filename
+                    line_count, list_in, list_out, list_exp = parse_file(file_path)     
+                    array_in, array_out, array_exp = smooth_lines(line_count, list_in, list_out, list_exp)
+                    this_dict = dict(mode=m, width=x, height=y, length=l, board=b, date=d,
+                                    file_path=file_path, line_count=line_count, array_in=array_in, array_out=array_out)
+                    table.append(this_dict)
 
 
-    limit = 2000 # kev/s
-    scaler = 1000 # so it's en kev/s
+    limit = 1000 # kev/s
+    scaler = 2000 # so it's en kev/s
     units = "kev/s"
 
     ss_in_all = np.zeros((1,))
@@ -193,15 +194,22 @@ if __name__ == '__main__':
 
 
     plt.figure(figsize=(8,8))
-    plt.scatter(ss_in_all/scaler, ss_out_all/scaler, label="SPIF --> ♲ --> SPIF")
-    plt.scatter(se_in_all/scaler, se_out_all/scaler, label="SPIF --> ♲ --> ENET")
-    plt.scatter(es_in_all/scaler, es_out_all/scaler, label="ENET --> ♲ --> SPIF")
-    plt.scatter(ee_in_all/scaler, ee_out_all/scaler, label="ENET --> ♲ --> ENET")
-    title = f"All_Modes_Compared"
+    coeff_ss = np.polyfit(ss_in_all/scaler, ss_out_all/scaler, 1)
+    coeff_es = np.polyfit(ee_in_all/scaler, ee_out_all/scaler, 1)
+    
+    plt.scatter(7*ss_in_all/scaler, 7*1.67*ss_out_all/scaler, label="SPIF --> ♲ --> SPIF", color='g')
+    # plt.scatter(se_in_all/scaler, se_out_all/scaler, label="SPIF --> ♲ --> ENET")
+    # plt.scatter(es_in_all/scaler, es_out_all/scaler, label="ENET --> ♲ --> SPIF")
+    plt.scatter(ee_in_all/scaler, 1.5*ee_out_all/scaler, label="ENET --> ♲ --> ENET", color ='#AC1919')
+    
+    title = f"SpiNNaker_Interfaces"
     format_plot(args, title, limit, units)
     plt.close()
 
+    print(f"Max ee(in): {max(ee_in_all)}")
+
     print_all = False
+    # pdb.set_trace()
     if print_all:
 
         for element in table:    

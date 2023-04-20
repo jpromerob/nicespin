@@ -14,83 +14,56 @@ from struct import pack
 import pyNN.spiNNaker as p
 from pyNN.space import Grid2D
 
-
-
-
-
-def create_lut(w, h, sw, sh):    
-
-    delay = 1 # 1 [ms]
-    nb_col = math.ceil(w/sw)
-    nb_row = math.ceil(h/sh)
-
-    lut = np.zeros((w*h,2), dtype='uint16')
-
-    lut_ix = 0
-    for h_block in range(nb_row):
-        for v_block in range(nb_col):
-            for row in range(sh):
-                for col in range(sw):
-                    x = v_block*sw+col
-                    y = h_block*sh+row
-                    if x<w and y<h:
-                        # print(f"{lut_ix} -> ({x},{y})")
-                        lut[lut_ix] = [x,y]
-                        lut_ix += 1
-        
-    return lut
-
-
 class Computer:
 
     def __init__(self, args, output_q, stim):
+
         # SpiNNaker Parameters
-        self.run_time = args.runtime*1000 # in [ms]
-        self.timestep = args.timestep/1000 # from [us] to [ms]
-        print(f"Time Step: {self.timestep} [ms]")
+        self.run_time = int(stim.duration)*1000 # in [ms]
         self.npc_x = 8
         self.npc_y = 4
-        self.nb_boards = 1        
-        try:
-            self.board = args.board
-            self.cfg_file = f"spynnaker_{self.board}.cfg"
-        except:
-            print("Wrong SpiNN-5 Board")
+        self.board = int(args.board)
+        if self.board == 1:
+            self.nb_boards = 24
+        else:
+            self.nb_boards = 1
+        self.cfg_file = f"spynnaker_{self.board}.cfg"
 
         # Infrastructure Parameters
         self.output_q = output_q
 
         # SPIF/ENET Parameters
-        self.lut = []
-        self.use_spif = not args.simulate_spif
-        if self.use_spif:
-            self.spif_ip = args.ip
-            self.spif_port_out = 3332
-            self.pipe = args.port-3333
+        self.mode = args.mode
+        
+        if self.mode[0] == 's':
             self.chip = (0,0)
+            self.pipe = args.port-3333
             self.sub_height = 8
-            self.sub_width = 16        
+            self.sub_width = 16  
+        if self.mode[1] == 's':
+            self.chip = (0,0)
+            self.spif_ip = args.ip
+            self.spif_port_out = 3332      
             self.p_shift = 15
             self.y_shift = 0
             self.x_shift = 16
             self.no_timestamp = 0x80000000
             self.sock_data = b""
-        else:
+            
+        if self.mode[0] == 'e':
+            self.database_port = stim.port.value
+        if self.mode[1] == 'e':
             self.port_spin2cpu = int(random.randint(12000,15000))
 
         # SNN Parameters
         self.width = args.width
         self.height = args.height
-        self.weight = args.weight
-        self.database_port = stim.port.value
 
-        # Remote receiver's parameters
-        self.remote_receiver = args.remote_receiver
-        if self.remote_receiver:
-            self.pc_ip = "172.16.222.199"
-            self.pc_port = 3331
-            self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-
+        # Stats 
+        self.t_start = 0
+        self.ev_count = 0 
+        self.first_ev_sent = False
+        self.bin_t = args.bin/2 # N second-bins to count events
 
 
     def __enter__(self):
@@ -99,17 +72,18 @@ class Computer:
         ###############################################################################################################
         # SpiNNaker Configuration
         ###############################################################################################################
-        p.setup(timestep=self.timestep, n_boards_required=self.nb_boards, cfg_file=self.cfg_file)
+        p.setup(timestep=1.0, n_boards_required=self.nb_boards, cfg_file=self.cfg_file)
         p.set_number_of_neurons_per_core(p.IF_curr_exp, (self.npc_x, self.npc_y))
 
 
-
+        ###############################################################################################################
+        # Set Inputs
+        ###############################################################################################################
 
         print("\n\n\n\n\n")
 
         IN_POP_LABEL = "input"
-
-        if self.use_spif:
+        if self.mode[0] == 's':
             print("Using SPIFRetinaDevice")
             input_pop = p.Population(self.width * self.height, p.external_devices.SPIFRetinaDevice(
                                     pipe=self.pipe, width=self.width, height=self.height, 
@@ -121,15 +95,13 @@ class Computer:
                                     database_notify_port_num=self.database_port), label=IN_POP_LABEL,
                                     structure=Grid2D(self.width / self.height))
 
-
-    
-        ################################################################################
+        ###############################################################################################################
         # Set Outputs
-        ################################################################################
+        ###############################################################################################################
         
         OUT_POP_LABEL = "output"
 
-        if self.use_spif:
+        if self.mode[1] == 's':
             print("Using SPIFOutputDevice")
             conn = p.external_devices.SPIFLiveSpikesConnection([IN_POP_LABEL], self.spif_ip, self.spif_port_out)
             conn.add_receive_callback(IN_POP_LABEL, self.recv_spif)
@@ -154,24 +126,32 @@ class Computer:
 
     def recv_enet(self, label, t_spike, neuron_ids):
 
-        t_current = time.time()
-        for n_id in neuron_ids:     
-            self.output_q.put((n_id, t_current))
-
-
+        pass
+        # self.update_stats(len(neuron_ids))        
+        # self.publish_stats()
 
     def recv_spif(self, label, spikes):
 
-        t_current = time.time()
-        np_spikes = np.array(spikes)
-        for i in range(np_spikes.shape[0]):          
-            t_current = time.time()       
-            self.output_q.put((np_spikes[i], t_current))
+        self.output_q.put(len(spikes), False)   
 
-        
+        # self.update_stats(len(spikes))
+        # self.publish_stats()
+    
+    # def update_stats(self, count):
+    #     if not self.first_ev_sent:
+    #         self.first_ev_sent = True
+    #         self.t_start = time.time()
+    #     self.ev_count += count
 
-        
-
+    # def publish_stats(self):        
+    #     if self.first_ev_sent:
+    #         t_current = time.time()
+    #         if t_current >= self.t_start + self.bin_t:
+    #             ev_per_s = int(self.ev_count/self.bin_t)
+    #             self.output_q.put(ev_per_s, False)                
+    #             self.t_start = t_current
+    #             self.ev_count = 0
+   
     def run_sim(self):
         p.run(self.run_time)
         time.sleep(0.1)

@@ -18,6 +18,8 @@ class Display:
     
     def __init__(self, args, input_q, output_q, end_of_sim, filename):
 
+        self.width = args.width
+        self.height = args.height
         self.input_q = input_q
         self.output_q = output_q
         self.end_of_sim = end_of_sim
@@ -55,23 +57,21 @@ class Display:
 
                 while not self.input_q.empty():
                     x_in, y_in, t_in = self.input_q.get(False)
+                    print(f"IN: Got ({x_in},{y_in}) ...")
 
                     
                 while not self.output_q.empty():
                     id_out, t_out = self.output_q.get(False)
                        
-                    # x = self.lut[np_spikes[i]][0]
-                    # y = self.lut[np_spikes[i]][1]  
-                    x_out = self.lut[id_out][0]
-                    y_out = self.lut[id_out][1]
-                    # print(f"Got ({x_out},{y_out}) ...")
+                    x_out = int(id_out) % self.width
+                    y_out = int(int(id_out) / self.width)
+                    print(f"OUT : Got ({x_out}, {y_out}) ...")
                     if x_out == x_in and y_out == y_in:
                         write_line = True
                         
 
                 
                 if write_line:
-                    # print(f"latency: {t_out-t_in} (t_in: {t_in} | t_out: {t_out})")
                     csv_writer.writerow([t_out-t_in, x_in, y_in, x_out, y_out])
                     write_line = False
                     t_in = t_out = -1

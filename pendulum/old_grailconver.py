@@ -15,44 +15,25 @@ def make_kernel_circle(r, k_sz,weight, kernel):
     kernel[var + dx, var + dy] = weight
 
 
-# scaler = 0.1
+SUB_WIDTH = 16
+SUB_HEIGHT = 4
+NPC_X = 4
+NPC_Y = 2
+scaler = 0.08
+
+
 # SUB_WIDTH = 16
 # SUB_HEIGHT = 8
 # NPC_X = 8
 # NPC_Y = 4
-# WIDTH = 640
-# HEIGHT = 640
+# scaler = 0.06
 
 
 # WIDTH = 640
 # HEIGHT = int(WIDTH*3/4)
 
-# # This seems to work OK-ish
-# scaler = 0.1
-# SUB_WIDTH = 16
-# SUB_HEIGHT = 8
-# NPC_X = 16
-# NPC_Y = 4
-# WIDTH = 720
-# HEIGHT = 720
-
-# ... ?
-scaler = 0.08
-SUB_WIDTH = 16
-SUB_HEIGHT = 8
-NPC_X = 8
-NPC_Y = 4
 WIDTH = 320
-HEIGHT = 320
-
-# This one 'loaded' for loooong and then it failed
-# SUB_WIDTH = 16
-# SUB_HEIGHT = 8
-# NPC_X = 16
-# NPC_Y = 8
-# WIDTH = 1280
-# HEIGHT = 720
-
+HEIGHT = WIDTH
 
 
 
@@ -89,7 +70,7 @@ def create_lut(w, h, sw, sh):
     return lut
 
 # The one in the video (using original recordings)
-k_sz = 39
+k_sz = int(39*5/5)
 pos_w = 0.8
 neg_w = -1.0
 print(k_sz)
@@ -99,8 +80,8 @@ make_kernel_circle(0.41*k_sz, k_sz, neg_w*scaler, kernel)
 make_kernel_circle(0.36*k_sz, k_sz, pos_w*scaler, kernel)
 make_kernel_circle(0.26*k_sz, k_sz, neg_w*scaler, kernel)
 
-plt.imshow(kernel, interpolation='nearest')
-plt.savefig("kernel.png")
+# plt.imshow(kernel, interpolation='nearest')
+# plt.savefig("kernel.png")
 
 # pdb.set_trace()
 
@@ -220,4 +201,3 @@ p.run(RUN_TIME)
 #         y = i - (x * out_height)
 #         print(f"{x}, {y}: {s}")
 p.end()
-

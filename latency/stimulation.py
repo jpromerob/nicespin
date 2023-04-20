@@ -12,8 +12,6 @@ import os
 import ctypes
 from time import sleep
 import pyNN.spiNNaker as p
-os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
-import pygame
 
 
 class Stimulator:
@@ -81,7 +79,7 @@ class Stimulator:
         IN_POP_LABEL = "input"
         polarity = 1
         
-        time.sleep(30) # Waiting for SpiNNaker to be ready
+        time.sleep(20) # Waiting for SpiNNaker to be ready
 
             
         if self.use_spif:
@@ -105,6 +103,7 @@ class Stimulator:
             x = e[0]
             y = e[1]
 
+            print(f"Sending ({x}, {y})")
             if self.use_spif:
                 packed = (self.no_timestamp + (polarity << self.p_shift) + (y << self.y_shift) + (x << self.x_shift))
                 self.sock_data += pack("<I", packed)
@@ -127,7 +126,7 @@ class Stimulator:
             t_current = time.time()  
             # print(f"Sent ({x},{y}) at t={t_current}")
             self.input_q.put((x,y,t_current))
-            time.sleep(0.010)
+            time.sleep(1)
 
         print("No more events to be created")
         if self.use_spif:

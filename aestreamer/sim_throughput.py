@@ -6,7 +6,7 @@ import datetime
 
 
 from stimulation import *
-from direct_computation import *
+from computation import *
 from annotation import *
 
 def get_filename(args):

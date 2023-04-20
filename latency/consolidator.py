@@ -52,6 +52,9 @@ if __name__ == '__main__':
     print(f"SPIF Mean Latency: {round(spif_summary.mean(),3)} ms ({len(spif_summary)})")
     
 
+
+    fig, ax = plt.subplots(figsize=(6,6))
+
     res_enet = plt.boxplot(enet_summary, positions=[1], showfliers=False)
     res_spif = plt.boxplot(spif_summary, positions=[2], showfliers=False)
     #plt.axhline(y = (mean_enet), linestyle='--', color = 'k', linewidth=0.5)
@@ -59,12 +62,13 @@ if __name__ == '__main__':
 
     
     plt.xticks([1,2],[f"ENET\n({mean_enet} ± {stdv_enet} ms)", f"SPIF\n({mean_spif} ± {stdv_spif} ms)"])
-    plt.ylim([0, 5])  
+    plt.ylim([0, 2])  
 
 
     plt.title(f"SPIF vs ENET")
     # plt.xlabel("...")
     plt.ylabel("Latency [ms]")
+    plt.grid(True)
 
     plt.savefig("boxplot_latency.png")
 

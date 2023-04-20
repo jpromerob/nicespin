@@ -72,7 +72,7 @@ class Computer:
         ###############################################################################################################
         # SpiNNaker Configuration
         ###############################################################################################################
-        p.setup(timestep=1.0, n_boards_required=self.nb_boards)
+        p.setup(timestep=1.0, n_boards_required=self.nb_boards, cfg_file=self.cfg_file)
         p.set_number_of_neurons_per_core(p.IF_curr_exp, (self.npc_x, self.npc_y))
 
 
@@ -85,9 +85,9 @@ class Computer:
         IN_POP_LABEL = "input"
         if self.mode[0] == 's':
             print("Using SPIFRetinaDevice")
-            input_pop = p.Population(self.width * self.height, p.external_devices.SPIFRetinaDevice(
-                                    pipe=self.pipe, width=self.width, height=self.height, 
-                                    sub_width=self.sub_width, sub_height=self.sub_height, 
+            input_pop = p.Population(None, p.external_devices.SPIFInputDevice(
+                                    pipe=self.pipe, n_neurons=self.width*self.height,
+                                    n_neurons_per_partition=self.npc_x*self.npc_y,
                                     chip_coords=self.chip), label=IN_POP_LABEL)
         else:
             print("Using SpikeInjector")
@@ -95,6 +95,14 @@ class Computer:
                                     database_notify_port_num=self.database_port), label=IN_POP_LABEL,
                                     structure=Grid2D(self.width / self.height))
 
+
+        MID_POP_LABEL = "middle"
+        middle_pop = p.Population(self.width * self.height, p.IF_curr_exp(), label=MID_POP_LABEL)
+
+
+        cell_conn = p.OneToOneConnector()
+        p.Projection(input_pop, middle_pop, cell_conn, receptor_type='excitatory', 
+                                    synapse_type=p.StaticSynapse(weight=10, delay=1))
 
         ###############################################################################################################
         # Set Outputs
@@ -104,19 +112,19 @@ class Computer:
 
         if self.mode[1] == 's':
             print("Using SPIFOutputDevice")
-            conn = p.external_devices.SPIFLiveSpikesConnection([IN_POP_LABEL], self.spif_ip, self.spif_port_out)
-            conn.add_receive_callback(IN_POP_LABEL, self.recv_spif)
+            conn = p.external_devices.SPIFLiveSpikesConnection([MID_POP_LABEL], self.spif_ip, self.spif_port_out)
+            conn.add_receive_callback(MID_POP_LABEL, self.recv_spif)
 
             output_pop = p.Population(None, p.external_devices.SPIFOutputDevice(
                 database_notify_port_num=conn.local_port, chip_coords=self.chip), label=OUT_POP_LABEL)
-            p.external_devices.activate_live_output_to(input_pop, output_pop)
+            p.external_devices.activate_live_output_to(middle_pop, output_pop)
             
 
         else:
             print("Using SpynnakerLiveSpikesConnection")
-            conn = p.external_devices.SpynnakerLiveSpikesConnection(receive_labels=[IN_POP_LABEL], local_port=self.port_spin2cpu)
-            _ = p.external_devices.activate_live_output_for(input_pop, database_notify_port_num=conn.local_port)
-            conn.add_receive_callback(IN_POP_LABEL, self.recv_enet)
+            conn = p.external_devices.SpynnakerLiveSpikesConnection(receive_labels=[MID_POP_LABEL], local_port=self.port_spin2cpu)
+            _ = p.external_devices.activate_live_output_for(middle_pop, database_notify_port_num=conn.local_port)
+            conn.add_receive_callback(MID_POP_LABEL, self.recv_enet)
         
         print("\n\n\n\n\n")
 
