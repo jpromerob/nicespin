@@ -23,6 +23,7 @@ if __name__ == '__main__':
 
     commands = []
     for i in range(1):
+        # for mode in ['ee']:
         for mode in ['ss', 'ee']:
             spif_ip = spin_spif_map[board]
             print(f'board {board}')

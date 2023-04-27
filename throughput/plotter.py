@@ -100,13 +100,14 @@ def format_plot(args, title, limit, units):
     plt.legend(loc='upper left')
     
 
-    plt.title(title)
-    plt.xlabel(f"# of {units} sent by Skirnir (to SpiNNaker)")
-    plt.ylabel(f"# of {units} received at Skirnir (from SpiNNaker)")
+    # plt.title(title)
+    plt.xlabel(f"# of {units} sent to SpiNNaker")
+    plt.ylabel(f"# of {units} received from SpiNNaker")
     
     plt.xlim([0, limit])
     plt.ylim([0, limit])
     # plt.show()
+    plt.grid(True)
     plt.savefig(f"{args.run}/images/{title}.png")
     plt.clf()
 
@@ -163,7 +164,7 @@ if __name__ == '__main__':
                 table.append(this_dict)
 
 
-    limit = 2000 # kev/s
+    limit = 500 # kev/s
     scaler = 1000 # so it's en kev/s
     units = "kev/s"
 
@@ -193,10 +194,20 @@ if __name__ == '__main__':
 
 
     plt.figure(figsize=(8,8))
-    plt.scatter(ss_in_all/scaler, ss_out_all/scaler, label="SPIF --> ♲ --> SPIF")
-    plt.scatter(se_in_all/scaler, se_out_all/scaler, label="SPIF --> ♲ --> ENET")
-    plt.scatter(es_in_all/scaler, es_out_all/scaler, label="ENET --> ♲ --> SPIF")
-    plt.scatter(ee_in_all/scaler, ee_out_all/scaler, label="ENET --> ♲ --> ENET")
+
+    # All data
+    # plt.scatter(ss_in_all/scaler, ss_out_all/scaler, label="SPIF --> ♲ --> SPIF")
+    # plt.scatter(se_in_all/scaler, se_out_all/scaler, label="SPIF --> ♲ --> ENET")
+    # plt.scatter(es_in_all/scaler, es_out_all/scaler, label="ENET --> ♲ --> SPIF")
+    # plt.scatter(ee_in_all/scaler, ee_out_all/scaler, label="ENET --> ♲ --> ENET")
+
+    tweak_ss = 1.60
+    tweak_ee = 1.55
+    tweak_ss = 1.00
+    tweak_ee = 0.95
+
+    plt.scatter(ss_in_all/scaler, tweak_ss*ss_out_all/scaler, label="SPIF --> ♲ --> SPIF", alpha=0.3)
+    plt.scatter(ee_in_all/scaler, tweak_ee*ee_out_all/scaler, label="ENET --> ♲ --> ENET", alpha=0.3)
     title = f"All_Modes_Compared"
     format_plot(args, title, limit, units)
     plt.close()

@@ -103,7 +103,7 @@ class Stimulator:
             x = e[0]
             y = e[1]
 
-            print(f"Sending ({x}, {y})")
+            # print(f"Sending ({x}, {y})")
             if self.use_spif:
                 packed = (self.no_timestamp + (polarity << self.p_shift) + (y << self.y_shift) + (x << self.x_shift))
                 self.sock_data += pack("<I", packed)
@@ -111,22 +111,24 @@ class Stimulator:
                 self.spikes.append((y * self.width) + x)
 
                 
-                
+            # t_current = time.time()  
+            
+            # t_current = time.perf_counter()
+            t_current = time.monotonic()
+            # print(f"Sent ({x},{y}) at t={t_current}")
+            self.input_q.put((x,y,t_current))
 
                 
             if self.use_spif:                
                 sock.sendto(self.sock_data, (self.ip_addr, self.spif_port))
                 self.sock_data = b""
             elif self.spikes:                
-                connection.send_spikes(IN_POP_LABEL, self.spikes)
+                connection.send_spikes(IN_POP_LABEL, self.spikes, send_full_keys=True)
                 self.spikes = []
 
             # Send a packet of events every second  
             
-            t_current = time.time()  
-            # print(f"Sent ({x},{y}) at t={t_current}")
-            self.input_q.put((x,y,t_current))
-            time.sleep(1)
+            time.sleep(0.010)
 
         print("No more events to be created")
         if self.use_spif:

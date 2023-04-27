@@ -24,7 +24,6 @@ class Display:
         self.output_q = output_q
         self.end_of_sim = end_of_sim
         self.filename = filename
-        self.lut = []
 
         self.p_stats = multiprocessing.Process(target=self.show_time, args=())
     
@@ -56,16 +55,18 @@ class Display:
 
 
                 while not self.input_q.empty():
-                    x_in, y_in, t_in = self.input_q.get(False)
-                    print(f"IN: Got ({x_in},{y_in}) ...")
+                    x_in, y_in, t_in = self.input_q.get()
+                    # t_in = time.perf_counter()
+                    # print(f"IN: Got ({x_in},{y_in}) ...")
 
                     
                 while not self.output_q.empty():
-                    id_out, t_out = self.output_q.get(False)
+                    id_out, t_out = self.output_q.get()
+                    # t_out = time.perf_counter()
                        
                     x_out = int(id_out) % self.width
                     y_out = int(int(id_out) / self.width)
-                    print(f"OUT : Got ({x_out}, {y_out}) ...")
+                    # print(f"OUT : Got ({x_out}, {y_out}) ...")
                     if x_out == x_in and y_out == y_in:
                         write_line = True
                         

@@ -14,33 +14,6 @@ from struct import pack
 import pyNN.spiNNaker as p
 from pyNN.space import Grid2D
 
-
-
-
-
-def create_lut(w, h, sw, sh):    
-
-    delay = 1 # 1 [ms]
-    nb_col = math.ceil(w/sw)
-    nb_row = math.ceil(h/sh)
-
-    lut = np.zeros((w*h,2), dtype='uint16')
-
-    lut_ix = 0
-    for h_block in range(nb_row):
-        for v_block in range(nb_col):
-            for row in range(sh):
-                for col in range(sw):
-                    x = v_block*sw+col
-                    y = h_block*sh+row
-                    if x<w and y<h:
-                        # print(f"{lut_ix} -> ({x},{y})")
-                        lut[lut_ix] = [x,y]
-                        lut_ix += 1
-        
-    return lut
-
-
 class Computer:
 
     def __init__(self, args, output_q, stim):
@@ -61,7 +34,6 @@ class Computer:
         self.output_q = output_q
 
         # SPIF/ENET Parameters
-        self.lut = []
         self.use_spif = not args.simulate_spif
         if self.use_spif:
             self.spif_ip = args.ip
@@ -84,14 +56,6 @@ class Computer:
         self.weight = args.weight
         self.database_port = stim.port.value
 
-        # Remote receiver's parameters
-        self.remote_receiver = args.remote_receiver
-        if self.remote_receiver:
-            self.pc_ip = "172.16.222.199"
-            self.pc_port = 3331
-            self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-
-
 
     def __enter__(self):
 
@@ -99,13 +63,14 @@ class Computer:
         ###############################################################################################################
         # SpiNNaker Configuration
         ###############################################################################################################
+
         p.setup(timestep=self.timestep, n_boards_required=self.nb_boards, cfg_file=self.cfg_file)
         p.set_number_of_neurons_per_core(p.IF_curr_exp, (self.npc_x, self.npc_y))
 
 
-
-
-        print("\n\n\n\n\n")
+        ###############################################################################################################
+        # Set Inputs
+        ###############################################################################################################
 
         IN_POP_LABEL = "input"
 
@@ -120,12 +85,11 @@ class Computer:
             input_pop = p.Population(self.width * self.height, p.external_devices.SpikeInjector(
                                     database_notify_port_num=self.database_port), label=IN_POP_LABEL,
                                     structure=Grid2D(self.width / self.height))
-
-
     
-        ################################################################################
+
+        ###############################################################################################################
         # Set Outputs
-        ################################################################################
+        ###############################################################################################################
         
         OUT_POP_LABEL = "output"
 
@@ -133,11 +97,9 @@ class Computer:
             print("Using SPIFOutputDevice")
             conn = p.external_devices.SPIFLiveSpikesConnection([IN_POP_LABEL], self.spif_ip, self.spif_port_out)
             conn.add_receive_callback(IN_POP_LABEL, self.recv_spif)
-
             output_pop = p.Population(None, p.external_devices.SPIFOutputDevice(
                 database_notify_port_num=conn.local_port, chip_coords=self.chip), label=OUT_POP_LABEL)
-            p.external_devices.activate_live_output_to(input_pop, output_pop)
-            
+            p.external_devices.activate_live_output_to(input_pop, output_pop)            
 
         else:
             print("Using SpynnakerLiveSpikesConnection")
@@ -153,23 +115,19 @@ class Computer:
 
 
     def recv_enet(self, label, t_spike, neuron_ids):
-
-        t_current = time.time()
+        # t_current = time.perf_counter()
+        t_current = time.monotonic()
         for n_id in neuron_ids:     
             self.output_q.put((n_id, t_current))
 
 
 
     def recv_spif(self, label, spikes):
-
-        t_current = time.time()
-        np_spikes = np.array(spikes)
-        for i in range(np_spikes.shape[0]):          
-            t_current = time.time()       
-            self.output_q.put((np_spikes[i], t_current))
-
-        
-
+        # t_current = time.perf_counter()
+        t_current = time.monotonic()
+        np_spikes = np.array(spikes)    
+        for i in range(np_spikes.shape[0]):      
+            self.output_q.put((np_spikes[i], t_current))      
         
 
     def run_sim(self):

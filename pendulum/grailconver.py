@@ -27,23 +27,41 @@ def make_kernel_circle(r, k_sz,weight, kernel):
 # WIDTH = 640
 # HEIGHT = int(WIDTH*3/4)
 
-# # This seems to work OK-ish
-# scaler = 0.1
+# This seems to work OK-ish
+# scaler = 0.08
 # SUB_WIDTH = 16
 # SUB_HEIGHT = 8
 # NPC_X = 16
 # NPC_Y = 4
-# WIDTH = 720
-# HEIGHT = 720
+# WIDTH = 320
+# HEIGHT = 320
 
 # ... ?
+# scaler = 0.08
+# SUB_WIDTH = 16
+# SUB_HEIGHT = 8
+# NPC_X = 16
+# NPC_Y = 4
+# WIDTH = 640
+# HEIGHT = 640
+
+# # THIS WORKS!
 scaler = 0.08
 SUB_WIDTH = 16
 SUB_HEIGHT = 8
 NPC_X = 8
 NPC_Y = 4
-WIDTH = 320
-HEIGHT = 320
+WIDTH = 640
+HEIGHT = 640
+
+# # This one 'loaded' for loooong and then it failed
+# scaler = 0.08
+# SUB_WIDTH = 16
+# SUB_HEIGHT = 8
+# NPC_X = 8
+# NPC_Y = 4
+# WIDTH = 720
+# HEIGHT = 720
 
 # This one 'loaded' for loooong and then it failed
 # SUB_WIDTH = 16
@@ -58,35 +76,12 @@ HEIGHT = 320
 
 SPIF_IP = "172.16.223.2"
 SPIF_PORT = 3332
-MY_PC_IP = "10.37.222.3"
+MY_PC_IP = "10.37.222.2"
 MY_PC_PORT = 3331
 POP_LABEL = "target"
 RUN_TIME = 1000*60*240
 CHIP = (0, 0)
 
-def create_lut(w, h, sw, sh):
-    
-
-    delay = 1 # 1 [ms]
-    nb_col = math.ceil(w/sw)
-    nb_row = math.ceil(h/sh)
-
-    lut = np.zeros((w*h,2), dtype='uint16')
-
-    lut_ix = 0
-    for h_block in range(nb_row):
-        for v_block in range(nb_col):
-            for row in range(sh):
-                for col in range(sw):
-                    x = v_block*sw+col
-                    y = h_block*sh+row
-                    if x<w and y<h:
-                        # print(f"{lut_ix} -> ({x},{y})")
-                        lut[lut_ix] = [x,y]
-                        lut_ix += 1
-
-        
-    return lut
 
 # The one in the video (using original recordings)
 k_sz = 39
@@ -149,35 +144,18 @@ NO_TIMESTAMP = 0x80000000
 
 
 global sock 
-global lut
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-lut = create_lut(out_width, out_height, NPC_X, NPC_Y)
-
-
-def recv(label, spikes):
-    global sock
-    data = b""
-    np_spikes = np.array(spikes)
-    xs = np_spikes // out_height
-    ys = np_spikes - (xs * out_height)
-    for x, y in zip(xs, ys):
-        polarity = 1
-        packed = (NO_TIMESTAMP + (polarity << P_SHIFT) + (y << Y_SHIFT) + (x << X_SHIFT))
-        data += pack("<I", packed)
-    sock.sendto(data, (MY_PC_IP, MY_PC_PORT))
 
 
 def recv_nid(label, spikes):
     global sock
-    global lut
     data = b""
     np_spikes = np.array(spikes)
     # print(np_spikes.shape)
-    for i in range(np_spikes.shape[0]):
-        x = lut[np_spikes[i]][0]
-        y = lut[np_spikes[i]][1]
+    for i in range(np_spikes.shape[0]):        
+        x = int(np_spikes[i]) % out_width
+        y = int(int(np_spikes[i]) / out_width)
         polarity = 1
-        # print(f"{np_spikes[i]} --> ({lut[np_spikes[i]][0]}, {lut[np_spikes[i]][1]})")
         packed = (NO_TIMESTAMP + (polarity << P_SHIFT) + (y << Y_SHIFT) + (x << X_SHIFT))
         data += pack("<I", packed)
     sock.sendto(data, (MY_PC_IP, MY_PC_PORT))
