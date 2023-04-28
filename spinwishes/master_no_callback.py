@@ -16,7 +16,7 @@ def start_receiver(args, q_sender, q_receiver, q_data):
         if value == "start_receiver":
             q_sender.put("start_sender")
             try:
-                cmd = f"./spif_receiver.exe {args.spif_ip} {args.ev_per_pack} {args.exduration}"
+                cmd = f"./c_code/spif_receiver.exe {args.spif_ip} {args.ev_per_pack} {args.exduration}"
                 # print(f"Start Receiver: {cmd}")
                 output = subprocess.check_output(cmd, shell=True)
                 output_str = output.decode('utf-8') # convert bytes to string   
@@ -33,9 +33,9 @@ def start_sender(args, q_sender, q_receiver, q_data):
     q_receiver.put("start_receiver")
     
     # sleeper_base_list = [2e6, 37, 2e6, 38, 2e6, 39, 2e6, 37, 2e6, 38, 2e6, 39, 2e6, 37, 2e6, 38, 2e6, 39]
-    # sleeper_base_list = [444, 192, 107, 65, 37, 23, 11, 2, 1]
+    sleeper_base_list = [444, 192, 107, 65, 37, 23, 11, 2, 1]
     # sleeper_base_list = np.logspace(1.6,0,20)
-    sleeper_base_list = np.linspace(100,1,100)
+    # sleeper_base_list = np.linspace(100,1,100)
     # sleeper_base_list = np.concatenate(([2000000, 2000000],np.logspace(6.31,4,20), np.logspace(3.9,1.6,500), np.logspace(1.6,0,20)))
     # sleeper_base_list = [444, 192]
 
@@ -56,7 +56,7 @@ def start_sender(args, q_sender, q_receiver, q_data):
         value = q_sender.get()  # Wait for the other function to put a value in the queue
         if value == "start_sender":
             time.sleep(1)
-            cmd = f"./send_and_request.exe {args.width} {args.height} {int(sleeper_base_list[idx])} {args.spif_ip}:3333 4000 1 {args.ev_per_pack}"
+            cmd = f"./c_code/send_and_request.exe {args.width} {args.height} {int(sleeper_base_list[idx])} {args.spif_ip}:3333 4000 1 {args.ev_per_pack}"
             # print(f"Start Sender: {cmd}")
             output = subprocess.check_output(cmd, shell=True)
             ev_data = output.decode('utf-8')

@@ -3,12 +3,14 @@ import math
 import pyNN.spiNNaker as p
 import pdb
 import socket
+import struct
 from struct import pack
 import matplotlib.pyplot as plt
 import argparse
 import time
 import os
 import threading
+
 
 
 class Computer:
@@ -39,6 +41,13 @@ class Computer:
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
         self.direct = args.direct
+        
+        
+        # create a Unix socket
+        self.unix_sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        self.unix_sock.bind(args.socket)
+        self.unix_sock.listen(1)
+
 
         self.print_configuration()
         self.ev_count = 0
@@ -74,7 +83,7 @@ class Computer:
             OUT_POP_LABEL = "output"
 
             print("Using SPIFOutputDevice")
-            conn = p.external_devices.SPIFLiveSpikesConnection([IN_POP_LABEL],self.spif_ip, self.spif_out_port)
+            conn = p.external_devices.SPIFLiveSpikesConnection([IN_POP_LABEL],self.spif_ip, self.spif_out_port, events_per_packet=256, time_per_packet=10)
             conn.add_receive_callback(IN_POP_LABEL, self.recv_spif)
             output_pop = p.Population(None, p.external_devices.SPIFOutputDevice(
                 database_notify_port_num=conn.local_port, chip_coords=self.chip), label=OUT_POP_LABEL)
@@ -100,19 +109,25 @@ class Computer:
             OUT_POP_LABEL = "output"
 
             print("Using SPIFOutputDevice")
-            conn = p.external_devices.SPIFLiveSpikesConnection([MID_POP_LABEL],self.spif_ip, self.spif_out_port, events_per_packet=32, time_per_packet=10)
+            conn = p.external_devices.SPIFLiveSpikesConnection([MID_POP_LABEL],self.spif_ip, self.spif_out_port)
             # conn.add_receive_callback(MID_POP_LABEL, self.recv_spif)
             output_pop = p.Population(None, p.external_devices.SPIFOutputDevice(
                 database_notify_port_num=conn.local_port, chip_coords=self.chip), label=OUT_POP_LABEL)
             p.external_devices.activate_live_output_to(middle_pop, output_pop)
 
     def print_ev_count(self):
-        print("Ready to ramble!")
-        t_sleep = 1
+        print("\n\n\nReady to ramble!\n\n\n")
+        t_sleep = 8
+        
+        self.conn, _ = self.unix_sock.accept()
         while True:
             # print(f"Ev count = {self.ev_count/t_sleep}           \r", end='')
             if self.ev_count > 0:
                 print(f"Ev count = {self.ev_count}\n", end='')
+                # send data
+                
+                data = struct.pack('i', self.ev_count)
+                self.conn.sendall(data)
                 self.ev_count = 0
             time.sleep(t_sleep)
 
@@ -148,6 +163,11 @@ class Computer:
 
     def __exit__(self, e, b, t):
         p.end()
+        
+
+        # close the connection and socket
+        self.conn.close()
+        self.unix_sock.close()
         print(f"ev_count: {self.ev_count}")
 
 
@@ -161,7 +181,8 @@ spin_spif_map = {"1": "172.16.223.2",
 def parse_args():
 
     parser = argparse.ArgumentParser(description='SpiNNaker-SPIF Simulation')
-
+    
+    parser.add_argument('-k', '--socket', type= str, help="Socket /tmp/<name>", default="/tmp/trash_socket")    
     parser.add_argument('-d', '--direct', action='store_true', help="indirect")  # on/off flag
 
     # SpiNNaker Simulation Parameters
@@ -191,6 +212,9 @@ if __name__ == '__main__':
     args = parse_args()
     # pdb.set_trace()
     args.spif_ip = spin_spif_map[str(args.board)]
+
+    os.system(f"rm {args.socket}")
+
     
     try:
         rig_command = f"rig-power 172.16.223.{int(args.board)-1}"
