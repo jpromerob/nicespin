@@ -14,8 +14,6 @@
 #include <bitset>
 #include <cmath>
 #include <fstream>
-#include <fcntl.h>      // for fcntl()
-
 
 
 using namespace std;
@@ -41,7 +39,6 @@ int main(int argc, char* argv[]) {
 
     // Creating socket file descriptor
     sockfd = socket(AF_INET, SOCK_DGRAM, 0);
-
 
     memset(&spif_out_addr, 0, sizeof(spif_out_addr));
     memset(&spif_in_addr, 0, sizeof(spif_in_addr));
@@ -99,7 +96,7 @@ int main(int argc, char* argv[]) {
 
 
     int sz_array = 10000;
-    float my_array[sz_array] = {};
+    float my_array[10000] = {};
     int array_idx = 0;
     while(array_idx < sz_array){
 
@@ -139,21 +136,12 @@ int main(int argc, char* argv[]) {
 
         if ((x_out == x_in) && (y_out == y_in)){
             my_array[array_idx] = float(elapsed_time.count())/1000000.0;
-            std::cout << "count: " << array_idx <<"| dt:\t" << elapsed_time.count() << " [us] : " <<  x_out << "," << y_out << std::endl;
+            std::cout << "dt:\t" << elapsed_time.count() << " [us] : " <<  x_out << "," << y_out << std::endl;
         }
 
         nb_pack_recv += max(n,0);       
 
         std::this_thread::sleep_for(std::chrono::microseconds(sleeper));
-        // double dummy_count = 0;
-        // while(true){
-        //     dummy_count++;
-        //     if(dummy_count > 100000){
-        //         dummy_count = 0;
-        //         break;
-        //     }
-        // }
-
         array_idx++;
 
     }

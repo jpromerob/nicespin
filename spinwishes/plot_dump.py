@@ -14,7 +14,7 @@ def parse_args():
     
 se_colors = {"enet": "#6600CC", 
                 "spyf": "#009900", 
-                "spif": "#009999"}
+                "spif": "#1955AF"}
 
 if __name__ == '__main__':
 
@@ -35,7 +35,7 @@ if __name__ == '__main__':
 
     min_in = 10e1/divider
     max_in = 8e6/divider
-    ax.plot([min_in, max_in], [min_in, max_in], label='Ideal', color= 'k', linestyle='--', linewidth=0.5, )
+    ax.plot([min_in, max_in], [min_in, max_in], label='_nolegend_', color= 'k', linestyle='--', linewidth=0.5, )
     mk_sz = 10
 
     # open the CSV file
@@ -61,7 +61,7 @@ if __name__ == '__main__':
                     ev_sent.append(ev_in)
                     ev_count.append(ev_out)
 
-    ax.scatter(ev_sent, ev_count, label='SPIF', color=se_colors["spif"], alpha=0.3, s=mk_sz)
+    ax.scatter(ev_sent, ev_count, label='SPIF direct', color=se_colors["spif"], alpha=1.0, s=mk_sz)
 
     data_x_limit = 8e5
     # square = plt.Rectangle((1e4, 1e4), data_x_limit, data_x_limit, fill=True, facecolor="grey", alpha=0.2)
@@ -89,11 +89,11 @@ if __name__ == '__main__':
                 ev_count.append(ev_out)
 
     # pdb.set_trace()
-    ax.scatter(ev_sent, ev_count, label='SPYF', color=se_colors["spyf"], alpha=0.3, s=mk_sz)
+    ax.scatter(ev_sent, ev_count, label='SPIF + sPyNNaker', color=se_colors["spyf"], alpha=1.0, s=mk_sz)
     
     
-    ax.axvline(x=max(ev_count), color='k', linestyle='--', linewidth='0.5')
-    ax.text(max(ev_count)*0.8, max_in/2, f'~{round(max(ev_count),1)}Mev/s', fontsize=8, rotation=90, verticalalignment='bottom')
+    ax.axvline(x=max(ev_count), color='k', linestyle=':', linewidth='0.5')
+    ax.text(max(ev_count)*0.8, max_in/3, f'~{round(max(ev_count),1)}Mev/s', fontsize=10, rotation=90, verticalalignment='bottom')
 
     ax.set_xlim([min_in, max_in])
     ax.set_ylim([min_in, max_in])
@@ -110,7 +110,7 @@ if __name__ == '__main__':
         plt.grid(True)
 
     # show the legend
-    plt.legend(loc="upper center")
+    plt.legend(loc="upper left", handletextpad=-0.2)
     # plt.legend(loc='lower right')
 
 # Show the plot

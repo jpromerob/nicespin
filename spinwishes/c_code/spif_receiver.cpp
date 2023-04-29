@@ -40,7 +40,7 @@ int main(int argc, char* argv[]) {
 
 
        const uint32_t events_per_packet = atoi(argv[2]);
-       const uint32_t time_per_packet = 1;
+       const uint32_t time_per_packet = 10;
 
        const uint32_t _SPIF_OUTPUT_SET_LEN = 0x5ec40000;
        const uint32_t _SPIF_OUTPUT_SET_TICK = 0x5ec20000;

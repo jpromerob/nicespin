@@ -12,9 +12,9 @@ def parse_args():
     return parser.parse_args()
 
 
-se_colors = {"enet": "#6600CC", 
+se_colors = {"enet": "#D93644", 
                 "spyf": "#009900", 
-                "spif": "#009999"}
+                "spif": "#1955AF"}
 
 thresholds = [1,2,3,4,5,6]
 
@@ -69,7 +69,7 @@ if __name__ == '__main__':
     ###########################################################
     ##                Handled Events (Input)                 ##
     ###########################################################
-    fig, ax = plt.subplots(figsize=(4,4))
+    fig, ax = plt.subplots(figsize=(5,5))
 
     # ax.set_aspect('equal')
 
@@ -103,7 +103,7 @@ if __name__ == '__main__':
     ##                Handled Events (Output)                ##
     ###########################################################
 
-    fig, ax = plt.subplots(figsize=(4,4))
+    fig, ax = plt.subplots(figsize=(5,5))
 
     b_plot = ax.boxplot(ratio_ev_out, positions=thresholds, showfliers=False)
 
@@ -133,7 +133,7 @@ if __name__ == '__main__':
     ##                Dropped Events (Input)                 ##
     ###########################################################
     
-    fig, ax = plt.subplots(figsize=(4,4))
+    fig, ax = plt.subplots(figsize=(5,5))
 
     # ax.set_aspect('equal')
 
@@ -171,7 +171,7 @@ if __name__ == '__main__':
     ##                Dropped Events (Output)                ##
     ###########################################################
 
-    fig, ax = plt.subplots(figsize=(4,4))
+    fig, ax = plt.subplots(figsize=(5,5))
 
     b_plot = ax.boxplot(ratio_ev_out_dropped, positions=thresholds, showfliers=False)
 

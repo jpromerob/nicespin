@@ -64,6 +64,7 @@ if __name__ == '__main__':
     os.system(f"mv {filename} old_{filename}")
     print("\n\n\nSaving simulation results in " + filename + "\n\n\n")
     
+    # q_sema = multiprocessing.Semaphore(0)
     manager = multiprocessing.Manager()
     end_of_sim = manager.Value('i', 0)
     input_q = multiprocessing.Queue() # events

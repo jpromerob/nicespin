@@ -14,15 +14,15 @@ def parse_args():
     return parser.parse_args()
 
     
-mode_colors = {"mode_ee": "#6600CC", # ENET
+mode_colors = {"mode_ee": "#D93644", # ENET
                "mode_se": "#B05FA1", 
                "mode_ss": "#009900", # SPyF
-               "mode_es": "#D93644"}
+               "mode_es": "#6600CC"}
 
-mode_labels = {"mode_ee": "in: ENET & out: ENET", 
-               "mode_se": "in: SPIF & out: ENET", 
-               "mode_ss": "in: SPIF & out: SPIF", 
-               "mode_es": "in: ENET & out: SPIF"}
+mode_labels = {"mode_ee": "E-in - E:out", 
+               "mode_se": "S-in - E:out", 
+               "mode_ss": "S-in - S:out", 
+               "mode_es": "E-in - S:out"}
 
 if __name__ == '__main__':
 
@@ -43,12 +43,12 @@ if __name__ == '__main__':
     #                  Figure Config.                #
     ##################################################
 
-    fig, ax = plt.subplots(figsize=(5,5))
+    fig, ax = plt.subplots(figsize=(4,4))
     ax.set_aspect('equal')
 
     min_in = 3e4/divider
     max_in = 5e5/divider
-    ax.plot([min_in, max_in], [min_in, max_in], label='Ideal', color= 'k', linestyle='--', linewidth=0.5, )
+    ax.plot([min_in, max_in], [min_in, max_in], color= 'k', linestyle='--', linewidth=0.5, label='_nolegend_')
     mk_sz = 10
     data_x_limit = 5e5
 
@@ -109,32 +109,6 @@ if __name__ == '__main__':
         ax.scatter(ev_sent, ev_count, label=mode_labels["mode_se"], color=mode_colors["mode_se"], alpha=1.0, s=mk_sz)
 
 
-    ##################################################
-    #                  ENET --> ENET                 #
-    ##################################################
-
-    filename_mode_ee = args.filename_mode_ee
-
-    if filename_mode_ee != "":
-        o_filename += "_ee"
-        with open(filename_mode_ee) as csvfile:
-            csvreader = csv.reader(csvfile)
-
-
-            # create empty lists to store the data
-            ev_sent = []
-            ev_count = []
-
-            # iterate through each row in the CSV file
-            for row in csvreader:
-                # print(row)
-                # store the first column as ev_sent
-                if float(row[2]) > 0 and float(row[1])<=data_x_limit:
-                    ev_sent.append(float(row[1])/divider)
-                    ev_count.append(float(row[2])/divider)
-
-        ax.scatter(ev_sent, ev_count, label=mode_labels["mode_ee"], color=mode_colors["mode_ee"], alpha=1.0, s=mk_sz)
-
 
     ##################################################
     #                  ENET --> SPIF                 #
@@ -163,6 +137,32 @@ if __name__ == '__main__':
         ax.scatter(ev_sent, ev_count, label=mode_labels["mode_es"], color=mode_colors["mode_es"], alpha=1.0, s=mk_sz)
 
 
+    ##################################################
+    #                  ENET --> ENET                 #
+    ##################################################
+
+    filename_mode_ee = args.filename_mode_ee
+
+    if filename_mode_ee != "":
+        o_filename += "_ee"
+        with open(filename_mode_ee) as csvfile:
+            csvreader = csv.reader(csvfile)
+
+
+            # create empty lists to store the data
+            ev_sent = []
+            ev_count = []
+
+            # iterate through each row in the CSV file
+            for row in csvreader:
+                # print(row)
+                # store the first column as ev_sent
+                if float(row[2]) > 0 and float(row[1])<=data_x_limit:
+                    ev_sent.append(float(row[1])/divider)
+                    ev_count.append(float(row[2])/divider)
+
+        ax.scatter(ev_sent, ev_count, label=mode_labels["mode_ee"], color=mode_colors["mode_ee"], alpha=1.0, s=mk_sz)
+
     
 
     ##################################################
@@ -183,8 +183,9 @@ if __name__ == '__main__':
         ax.set_ylabel('Events received from SpiNNaker [kev/s]')
         plt.grid(True)
 
-    # show the legend
-    plt.legend()
+    # show the legend    
+    plt.legend(loc="upper left", handletextpad=-0.2)
+    # plt.legend(handletextpad=-0.5)
 
 
     # display the plot

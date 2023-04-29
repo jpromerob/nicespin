@@ -92,35 +92,35 @@ if __name__ == '__main__':
 
 
     
-    se_colors = {"enet": "#6600CC", 
+    se_colors = {"enet": "#D93644", 
                     "spyf": "#009900", 
-                    "spif": "#009999"}
+                    "spif": "#1955AF"}
 
 
-    fig, ax = plt.subplots(figsize=(4,4))
+    fig, ax = plt.subplots(figsize=(5,5))
 
     lab_enet = f"ENET: {mean_enet} ± {stdv_enet} [ms]"
     res_enet = plt.boxplot(enet_summary, positions=[1], showfliers=False)
     res_enet['boxes'][0].set(color=se_colors["enet"])
     res_enet['medians'][0].set(color='black')
-    lab_spyf = f"SPyF: {mean_spyf} ± {stdv_spyf} [ms]"
+    lab_spyf = f"SPIF+SpyNNaker: {mean_spyf} ± {stdv_spyf} [ms]"
     res_spyf = plt.boxplot(spyf_summary, positions=[2], showfliers=False)
     res_spyf['boxes'][0].set(color=se_colors["spyf"])
     res_spyf['medians'][0].set(color='black')
-    lab_spif = f"SPIF: {mean_spif} ± {stdv_spif} [ms]"
+    lab_spif = f"SPIF Direct: {mean_spif} ± {stdv_spif} [ms]"
     res_spif = plt.boxplot(spif_summary, positions=[3], showfliers=False)
     res_spif['boxes'][0].set(color=se_colors["spif"])
     res_spif['medians'][0].set(color='black')
 
     textstr = f'{lab_enet}\n{lab_spyf}\n{lab_spif}'
     props = dict(facecolor='white', alpha=0.5)
-    ax.text(0.3, 0.865, textstr, transform=ax.transAxes, fontsize=10,
+    ax.text(0.25, 0.865, textstr, transform=ax.transAxes, fontsize=10,
             verticalalignment='top', bbox=props)
 
 
 
     from matplotlib.patches import Circle
-    circle = Circle((3, median_spif), 0.2, fill=False, linestyle="--", color=se_colors["spif"])
+    circle = Circle((3, median_spif), 0.18, fill=False, linestyle="--", color=se_colors["spif"])
     ax.add_artist(circle)
 
     #plt.axhline(y = (mean_enet), linestyle='--', color = 'k', linewidth=0.5)
@@ -132,10 +132,11 @@ if __name__ == '__main__':
     #                   f"SPIF\n({mean_spif}\n±\n{stdv_spif}\n[ms])"])
     
     plt.xticks([1,2,3],[f"ENET", 
-                      f"SPyF", 
-                      f"SPIF"])
+                      f"SPIF\nSpyNNaker", 
+                      f"SPIF\nDirect"])
     
-    plt.ylim([0, max(median_enet+3*stdv_enet,median_spyf+3*stdv_spyf,median_spif+3*stdv_spif,)])  
+    # plt.ylim([0, max(median_enet+4*stdv_enet,median_spyf+3*stdv_spyf,median_spif+3*stdv_spif,)])  
+    plt.ylim([0, 1.6])  
 
 
     # plt.title(f"spyf vs ENET")
@@ -150,7 +151,7 @@ if __name__ == '__main__':
     
     fig, ax = plt.subplots(figsize=(6,4))
 
-    nb_bins = 10
+    nb_bins = 24
     x_range = (0,1.2)
 
     spif_filter = spif_summary

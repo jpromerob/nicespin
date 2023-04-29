@@ -79,7 +79,7 @@ class Stimulator:
         IN_POP_LABEL = "input"
         polarity = 1
         
-        time.sleep(20) # Waiting for SpiNNaker to be ready
+        time.sleep(40) # Waiting for SpiNNaker to be ready
 
             
         if self.use_spif:
@@ -116,19 +116,21 @@ class Stimulator:
             # t_current = time.perf_counter()
             t_current = time.monotonic()
             # print(f"Sent ({x},{y}) at t={t_current}")
-            self.input_q.put((x,y,t_current))
 
-                
+            
+
             if self.use_spif:                
                 sock.sendto(self.sock_data, (self.ip_addr, self.spif_port))
                 self.sock_data = b""
             elif self.spikes:                
                 connection.send_spikes(IN_POP_LABEL, self.spikes, send_full_keys=True)
                 self.spikes = []
+            
+            self.input_q.put((x,y,t_current))
 
             # Send a packet of events every second  
             
-            time.sleep(0.010)
+            time.sleep(0.240)
 
         print("No more events to be created")
         if self.use_spif:
