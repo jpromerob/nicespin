@@ -79,7 +79,7 @@ plt.xlim([0, 9])
 plt.ylim([0, 4])  
 plt.grid(True)
 plt.legend()
-plt.savefig(f"plot_ev_count.png", dpi=300, bbox_inches='tight')
+plt.savefig(f"images/plot_ev_count.png", dpi=300, bbox_inches='tight')
 print(f"mean_ev_count: {mean_ev_count}")
 
 plt.clf()
@@ -90,7 +90,7 @@ fig, ax = plt.subplots(figsize=fig_sz)
 plt.hist(x=binner[1:-1]*bin_duration, bins=20, color=color_ev_count, alpha=0.7, rwidth=0.9, label='Ev Count')
 plt.xlabel('Event Count per 1ms')
 plt.ylabel('Occurrences')
-plt.savefig("hist_ev_count.png", dpi=300, bbox_inches='tight')
+plt.savefig(f"images/hist_ev_count.png", dpi=300, bbox_inches='tight')
 
 
         

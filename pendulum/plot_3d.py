@@ -88,7 +88,7 @@ if __name__ == '__main__':
     fig = plt.figure() # figsize=(4,4)
     plt.plot(t,v, color='k')
     plt.plot(t[0:lsv],s_v, color='r')
-    plt.savefig(f'Velocity_{xy_units}_per_s.png', dpi=300, bbox_inches='tight')
+    plt.savefig(f'images/Velocity_{xy_units}_per_s.png', dpi=300, bbox_inches='tight')
     plt.clf()
 
 
@@ -142,7 +142,7 @@ if __name__ == '__main__':
     ax.set_zlim([0, 1])
 
     # show plot
-    plt.savefig(f'PendulumTrajectory3D_{xy_units}_per_s.png', dpi=600, bbox_inches='tight')
+    plt.savefig(f'images/PendulumTrajectory3D_{xy_units}_per_s.png', dpi=600, bbox_inches='tight')
     # plt.show()
     plt.clf()
 
@@ -163,5 +163,5 @@ if __name__ == '__main__':
     ax.set_ylim([0, max_xy])
 
     # show plot
-    plt.savefig(f'PendulumTrajectory2D_{xy_units}_per_s.png', dpi=300, bbox_inches='tight')
+    plt.savefig(f'images/PendulumTrajectory2D_{xy_units}_per_s.png', dpi=300, bbox_inches='tight')
     # plt.show()

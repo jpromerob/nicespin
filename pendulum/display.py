@@ -15,6 +15,7 @@ import os
 parser = argparse.ArgumentParser(description='Visualizer')
 parser.add_argument('-p1', '--port1', type= int, help="Port for input", default=3331)
 parser.add_argument('-p2', '--port2', type= int, help="Port for output", default=3332)
+parser.add_argument('-p', '--period', type= int, help="Printing Period in ms", default=1000)
 parser.add_argument('-s', '--scale', type= float, help="Image scale", default=1)
 parser.add_argument('-x', '--in_width', type= int, help="X res = in_width", default=640)
 parser.add_argument('-y', '--in_height', type= int, help="Y res = in_height", default=480)
@@ -45,68 +46,72 @@ out_frame = np.zeros((2*offset+out_width,2*offset+out_height,3))
 
 high_x = 0
 high_y = 0
+period = args.period/1000
 
 radius = 4
 
-# pdb.set_trace()
-
 nx = args.scale
 ny = args.scale
-with aestream.UDPInput((in_width, in_height), device = 'cpu', port=e_port_1) as stream1:
-    with aestream.UDPInput((out_width, out_height), device = 'cpu', port=e_port_2) as stream2:
-            
-        while True:
 
-            in_frame[:,:,:] = np.zeros((in_width, in_height,3))
-            out_frame[offset:offset+out_width,offset:offset+out_height,:] = black
-            in_frame[:,:,1] = stream1.read().numpy() # Provides a (in_width, in_height) tensor
-            out_frame[offset:offset+out_width,offset:offset+out_height,1] = stream2.read().numpy() # Provides a (out_width, out_height) tensor
+with open('data/trajectory.csv', mode='w') as pendulum_file:  
+    
+    csv_writer = csv.writer(pendulum_file, delimiter=',')
+    with aestream.UDPInput((in_width, in_height), device = 'cpu', port=e_port_1) as stream1:
+        with aestream.UDPInput((out_width, out_height), device = 'cpu', port=e_port_2) as stream2:
+            zero_time = time.time()    
+            last_time = zero_time
+            while True:
 
-
-            
-            if args.target:
-
-                # high_x = int(np.argmax(out_frame.sum(2).sum(1)))
-                # high_y = int(np.argmax(out_frame.sum(2).sum(0)))
-                line_x = out_frame[offset:offset+out_width,offset:offset+out_height,:].sum(2).sum(1)
-                line_y = out_frame[offset:offset+out_width,offset:offset+out_height,:].sum(2).sum(0)
-                idx_max_x = np.argwhere(line_x>=line_x.max())
-                idx_max_y = np.argwhere(line_y>=line_y.max())
-
-                if len(idx_max_x) > 0 and len(idx_max_y) > 0:
-                    # pdb.set_trace()
-                    high_x = int(np.average(idx_max_x))
-                    high_y = int(np.average(idx_max_y))
+                in_frame[:,:,:] = np.zeros((in_width, in_height,3))
+                out_frame[offset:offset+out_width,offset:offset+out_height,:] = black
+                in_frame[:,:,1] = stream1.read().numpy() 
+                out_frame[offset:offset+out_width,offset:offset+out_height,1] = stream2.read().numpy() 
 
 
-                    # print(f"({high_x},{high_y})")
+                if args.target:
+
+                    line_x = out_frame[offset:offset+out_width,offset:offset+out_height,:].sum(2).sum(1)
+                    line_y = out_frame[offset:offset+out_width,offset:offset+out_height,:].sum(2).sum(0)
+                    idx_max_x = np.argwhere(line_x>=line_x.max())
+                    idx_max_y = np.argwhere(line_y>=line_y.max())
+
+                    if len(idx_max_x) > 0 and len(idx_max_y) > 0:
+                        # pdb.set_trace()
+                        high_x = int(np.average(idx_max_x))
+                        high_y = int(np.average(idx_max_y))
 
 
-                    lim_left = high_x - radius
-                    lim_right = high_x + radius
-                    lim_up = high_y + radius
-                    lim_bottom = high_y - radius
-                    if(lim_left<0):
-                        lim_left = 0
-                    if(lim_bottom<0):
-                        lim_bottom = 0
-                    if(lim_right>=out_width):
-                        lim_right = out_width-1
-                    if(lim_up>=out_height):
-                        lim_up = out_height-1
+                        current_time = time.time()  # get the current time again
+                        if (current_time > last_time + period and line_x.sum() > 0):  # calculate the elapsed time
+                            csv_writer.writerow([high_x, high_y, current_time-zero_time])
+                            last_time = current_time
 
-                    # Actual 'target' drawing
-                    if out_frame[offset:offset+out_width,offset:offset+out_height,:].sum() > 1:
-                        for x in range(lim_right-lim_left+1):
-                            for y in range(lim_up-lim_bottom+1):
-                                in_frame[offset+lim_left+x, offset+lim_bottom+y, :] = [0,0,255]
 
+                        lim_left = high_x - radius
+                        lim_right = high_x + radius
+                        lim_up = high_y + radius
+                        lim_bottom = high_y - radius
+                        if(lim_left<0):
+                            lim_left = 0
+                        if(lim_bottom<0):
+                            lim_bottom = 0
+                        if(lim_right>=out_width):
+                            lim_right = out_width-1
+                        if(lim_up>=out_height):
+                            lim_up = out_height-1
+
+                        # Actual 'target' drawing
+                        if out_frame[offset:offset+out_width,offset:offset+out_height,:].sum() > 1:
+                            for x in range(lim_right-lim_left+1):
+                                for y in range(lim_up-lim_bottom+1):
+                                    in_frame[offset+lim_left+x, offset+lim_bottom+y, :] = [0,0,255]
+
+                    
+                image = cv2.resize(in_frame.transpose(1,0,2), (math.ceil(in_width*nx),math.ceil(in_height*ny)), interpolation = cv2.INTER_AREA)
                 
-            image = cv2.resize(in_frame.transpose(1,0,2), (math.ceil(in_width*nx),math.ceil(in_height*ny)), interpolation = cv2.INTER_AREA)
-            
-            
-            cv2.imshow('Durin On Board', image)
-            cv2.waitKey(1)
+                
+                cv2.imshow('Durin On Board', image)
+                cv2.waitKey(1)
 
     
 

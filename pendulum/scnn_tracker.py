@@ -95,47 +95,14 @@ make_kernel_circle(0.36*k_sz, k_sz, pos_w*scaler, kernel)
 make_kernel_circle(0.26*k_sz, k_sz, neg_w*scaler, kernel)
 
 plt.imshow(kernel, interpolation='nearest')
-plt.savefig("kernel.png")
+plt.savefig("images/kernel.png")
 
-# pdb.set_trace()
-
-# scaler = 0.03
-# k_sz = 53
-# kernel = np.zeros((k_sz, k_sz))
-# make_kernel_circle(22, k_sz, 1.0*scaler, kernel)
-# make_kernel_circle(18, k_sz, -1.8*scaler, kernel)
-# make_kernel_circle(15, k_sz, 1.0*scaler, kernel)
-# make_kernel_circle(12, k_sz, -1.8*scaler, kernel)
-# #make_kernel_circle(7, k_sz, 1.0*scaler, kernel)
-# #make_kernel_circle(4, k_sz, -1.2*scaler, kernel)
-# #make_kernel_circle(3, k_sz, -1.2*scaler, kernel)
-# #make_kernel_circle(2, k_sz, -1.2*scaler, kernel)
-# #make_kernel_circle(1, k_sz, -1.2*scaler, kernel)
-
-
-# scaler = 0.03
-# k_sz = 65
-# kernel = np.zeros((k_sz, k_sz))
-# make_kernel_circle(28, k_sz, 1.0*scaler, kernel)
-# make_kernel_circle(23, k_sz, -1.2*scaler, kernel)
-# make_kernel_circle(19, k_sz, 1.0*scaler, kernel)
-# make_kernel_circle(15, k_sz, -1.2*scaler, kernel)
-# # make_kernel_circle(9, k_sz, 1*scaler, kernel)
-# # min_r = 5
-# # for i in range(min_r):
-# #     if min_r-i>=1:
-# #         make_kernel_circle(min_r-i, k_sz, 1.0*scaler, kernel)
-
-
-# for x in range(len(kernel)):
-#     print(list(kernel[x]))
 
 convolution = p.ConvolutionConnector(kernel_weights=kernel)
 out_width, out_height = convolution.get_post_shape((WIDTH, HEIGHT))
 
 print(f"Output {out_width} x {out_height}")
 
-# pdb.set_trace()
 
 P_SHIFT = 15
 Y_SHIFT = 0
@@ -151,7 +118,6 @@ def recv_nid(label, spikes):
     global sock
     data = b""
     np_spikes = np.array(spikes)
-    # print(np_spikes.shape)
     for i in range(np_spikes.shape[0]):        
         x = int(np_spikes[i]) % out_width
         y = int(int(np_spikes[i]) / out_width)
@@ -168,7 +134,6 @@ conn.add_receive_callback(POP_LABEL, recv_nid)
 
 
 p.setup(timestep=1.0, n_boards_required=24)
-# p.setup(1)
 p.set_number_of_neurons_per_core(p.IF_curr_exp, (NPC_X, NPC_Y))
 
 spif_retina = p.Population(
@@ -180,7 +145,6 @@ spif_retina = p.Population(
 target_pop = p.Population(
     out_width * out_height, p.IF_curr_exp(),
     structure=p.Grid2D(out_width / out_height), label=POP_LABEL)
-# target_pop.record("spikes")
 
 p.Projection(spif_retina, target_pop, convolution, p.Convolution())
 
@@ -188,14 +152,8 @@ spif_output = p.Population(None, p.external_devices.SPIFOutputDevice(
     database_notify_port_num=conn.local_port, chip_coords=CHIP), label="output")
 p.external_devices.activate_live_output_to(target_pop, spif_output)
 
-# pdb.set_trace()
 
 p.run(RUN_TIME)
-# spikes = target_pop.get_data("spikes").segments[0].spiketrains
-# for i, s in enumerate(spikes):
-#     if len(s):
-#         x = i // out_height
-#         y = i - (x * out_height)
-#         print(f"{x}, {y}: {s}")
+
 p.end()
 
