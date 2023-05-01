@@ -9,26 +9,17 @@ import matplotlib.pyplot as plt
 
 
 
-def parse_args():
-
-
-    parser = argparse.ArgumentParser(description='Consolidator')
-
-    parser.add_argument('-f', '--fname', type= str, help="File to be analyzed", default="")
-    return parser.parse_args()
-
 
 if __name__ == '__main__':
 
-    args = parse_args()
 
     enet_summary = []
     spyf_summary = []
     spif_summary = []
 
-    max_l = 10000
+    max_l = 1000
 
-    with open("enet_latency.csv", mode='r') as sim_file:  
+    with open("data/enet_latency.csv", mode='r') as sim_file:  
         csv_reader = csv.reader(sim_file, delimiter=',') 
         l_count = 0
         for row in csv_reader:
@@ -39,7 +30,7 @@ if __name__ == '__main__':
                 break
 
     
-    with open("spyf_latency.csv", mode='r') as sim_file:  
+    with open("data/spyf_latency.csv", mode='r') as sim_file:  
         csv_reader = csv.reader(sim_file, delimiter=',') 
         l_count = 0
         for row in csv_reader:
@@ -49,7 +40,7 @@ if __name__ == '__main__':
             else:
                 break
 
-    with open("spif_latency.csv", mode='r') as sim_file:  
+    with open("data/spif_latency.csv", mode='r') as sim_file:  
         csv_reader = csv.reader(sim_file, delimiter=',') 
         l_count = 0
         for row in csv_reader:
@@ -144,15 +135,15 @@ if __name__ == '__main__':
     plt.ylabel("Latency [ms]")
     plt.grid(True)
 
-    plt.savefig("boxplot_latency.png", dpi=300, bbox_inches='tight')
+    plt.savefig("images/boxplot_latency.png", dpi=300, bbox_inches='tight')
 
 
     plt.clf()
     
     fig, ax = plt.subplots(figsize=(4,4))
 
-    nb_bins = 24
-    x_range = (0,1.2)
+    nb_bins = 40
+    x_range = (0,1.4)
 
     spif_filter = spif_summary
     spyf_filter = spyf_summary[(spyf_summary > mean_spyf-stdv_spyf*2)]
@@ -160,11 +151,12 @@ if __name__ == '__main__':
 
     # pdb.set_trace()
 
-    plt.hist(x=spif_filter, bins=nb_bins, range=x_range, color=se_colors["spif"], alpha=0.7, rwidth=0.9, label='SPIF')
-    plt.hist(x=spyf_filter, bins=nb_bins, range=x_range, color=se_colors["spyf"], alpha=0.7, rwidth=0.9, label='SPyF')
+    plt.hist(x=spif_filter, bins=nb_bins, range=x_range, color=se_colors["spif"], alpha=0.7, rwidth=0.9, label='SPIF Direct')
+    plt.hist(x=spyf_filter, bins=nb_bins, range=x_range, color=se_colors["spyf"], alpha=0.7, rwidth=0.9, label='SPIF+sPyNNaker')
     plt.hist(x=enet_filter, bins=nb_bins, range=x_range, color=se_colors["enet"], alpha=0.7, rwidth=0.9, label='ENET')
     plt.xlabel("Latency [ms]")
+    plt.xlim([0, 1.54])
     plt.ylabel("# of Events")
-    plt.title(f"spyf vs ENET")
+    plt.yscale('log')
     plt.legend()
-    plt.savefig("histo_latency.png", dpi=300, bbox_inches='tight')
+    plt.savefig("images/histo_latency.png", dpi=300, bbox_inches='tight')
