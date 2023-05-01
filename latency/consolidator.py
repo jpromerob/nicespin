@@ -97,13 +97,13 @@ if __name__ == '__main__':
                     "spif": "#1955AF"}
 
 
-    fig, ax = plt.subplots(figsize=(5,5))
+    fig, ax = plt.subplots(figsize=(4,4))
 
     lab_enet = f"ENET: {mean_enet} ± {stdv_enet} [ms]"
     res_enet = plt.boxplot(enet_summary, positions=[1], showfliers=False)
     res_enet['boxes'][0].set(color=se_colors["enet"])
     res_enet['medians'][0].set(color='black')
-    lab_spyf = f"SPIF+SpyNNaker: {mean_spyf} ± {stdv_spyf} [ms]"
+    lab_spyf = f"SPIF+sPyNNaker: {mean_spyf} ± {stdv_spyf} [ms]"
     res_spyf = plt.boxplot(spyf_summary, positions=[2], showfliers=False)
     res_spyf['boxes'][0].set(color=se_colors["spyf"])
     res_spyf['medians'][0].set(color='black')
@@ -114,7 +114,7 @@ if __name__ == '__main__':
 
     textstr = f'{lab_enet}\n{lab_spyf}\n{lab_spif}'
     props = dict(facecolor='white', alpha=0.5)
-    ax.text(0.25, 0.865, textstr, transform=ax.transAxes, fontsize=10,
+    ax.text(0.25, 0.93, textstr, transform=ax.transAxes, fontsize=8,
             verticalalignment='top', bbox=props)
 
 
@@ -131,8 +131,8 @@ if __name__ == '__main__':
     #                   f"SPyF\n({mean_spyf}\n±\n{stdv_spyf}\n[ms])", 
     #                   f"SPIF\n({mean_spif}\n±\n{stdv_spif}\n[ms])"])
     
-    plt.xticks([1,2,3],[f"ENET", 
-                      f"SPIF\nSpyNNaker", 
+    plt.xticks([1,2,3],[f"ENET\nsPyNNaker", 
+                      f"SPIF\nsPyNNaker", 
                       f"SPIF\nDirect"])
     
     # plt.ylim([0, max(median_enet+4*stdv_enet,median_spyf+3*stdv_spyf,median_spif+3*stdv_spif,)])  
@@ -144,12 +144,12 @@ if __name__ == '__main__':
     plt.ylabel("Latency [ms]")
     plt.grid(True)
 
-    plt.savefig("boxplot_latency.png")
+    plt.savefig("boxplot_latency.png", dpi=300, bbox_inches='tight')
 
 
     plt.clf()
     
-    fig, ax = plt.subplots(figsize=(6,4))
+    fig, ax = plt.subplots(figsize=(4,4))
 
     nb_bins = 24
     x_range = (0,1.2)
@@ -167,4 +167,4 @@ if __name__ == '__main__':
     plt.ylabel("# of Events")
     plt.title(f"spyf vs ENET")
     plt.legend()
-    plt.savefig("histo_latency.png")
+    plt.savefig("histo_latency.png", dpi=300, bbox_inches='tight')

@@ -19,10 +19,10 @@ mode_colors = {"mode_ee": "#D93644", # ENET
                "mode_ss": "#009900", # SPyF
                "mode_es": "#6600CC"}
 
-mode_labels = {"mode_ee": "E-in - E:out", 
-               "mode_se": "S-in - E:out", 
-               "mode_ss": "S-in - S:out", 
-               "mode_es": "E-in - S:out"}
+mode_labels = {"mode_ee": "E-in / E-out", 
+               "mode_se": "S-in / E-out", 
+               "mode_ss": "S-in / S-out", 
+               "mode_es": "E-in / S-out"}
 
 if __name__ == '__main__':
 

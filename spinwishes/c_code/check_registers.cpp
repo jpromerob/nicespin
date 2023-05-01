@@ -79,8 +79,8 @@ int main(int argc, char* argv[]) {
 
     srand(time(NULL)); // seed the random number generator with the current time
 
-    if (argc != 8) {
-        cerr << "Usage: " << argv[0] << " <ip-address>:<port> <csv_fn> <width> <t> <duration> <ev_per_pack> <check>" << endl;
+    if (argc != 7) {
+        cerr << "Usage: " << argv[0] << " <ip-address>:<port> <csv_fn> <width> <t> <duration> <ev_per_pack>" << endl;
         return 1;
     }
 
@@ -90,7 +90,6 @@ int main(int argc, char* argv[]) {
     int sleeper = atoi(argv[4]);
     int duration = atoi(argv[5]);
     int ev_per_pack = atoi(argv[6]);
-    int check = atoi(argv[7]);
 
     /*****************************************************/
     /*                   Load CSV file                   */
@@ -189,15 +188,11 @@ int main(int argc, char* argv[]) {
 
 
     }
+
+    send_request(spif_ip, 4000, total_ev_sent);
+    
     printf("Total events sent: %ld\n", total_ev_sent);
 
     close(udp_fd);
-    
-    if(check == 1){
-        std::this_thread::sleep_for(std::chrono::seconds(1));
-        send_request(spif_ip, 4000, total_ev_sent);
-    }
-    
-
     return 0;
 }

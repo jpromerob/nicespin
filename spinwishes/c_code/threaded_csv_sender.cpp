@@ -1,4 +1,3 @@
-
 #include <arpa/inet.h>
 #include <chrono>
 #include <cstdlib>
@@ -20,14 +19,9 @@ const uint16_t UDP_max_bytesize = 1024;
 const uint16_t ev_size = 4; // 4 bytes
 
 
-const uint32_t P_SHIFT = 15;
-const uint32_t Y_SHIFT = 0;
-const uint32_t X_SHIFT = 16;
-const uint32_t NO_TIMESTAMP = 0x80000000;
-
-
-
-int send_request(char * ip_address, int port, int ev_per_sec) {
+int send_request(char* argv[], int port, int ev_per_sec) {
+    
+    char* ip_address = argv[2];
 
     // create a UDP socket
     int sockfd = socket(AF_INET, SOCK_DGRAM, 0);
@@ -47,13 +41,10 @@ int send_request(char * ip_address, int port, int ev_per_sec) {
     char message[10];
     std::sprintf(message, "%d", ev_per_sec);
 
-    // char str[10];
-    // std::sprintf(str, "%d", num);
-    // return 0;
 
     int n = sendto(sockfd, message, std::strlen(message), 0, (struct sockaddr*)&destaddr, sizeof(destaddr));
     if (n < 0) {
-        std::cerr << "Error sending message\n";
+        std::cerr << "Error sending request message\n";
         return 1;
     }
 
@@ -74,71 +65,32 @@ int send_request(char * ip_address, int port, int ev_per_sec) {
     return 0;
 }
 
-int main(int argc, char* argv[]) {
-
-
-    srand(time(NULL)); // seed the random number generator with the current time
-
-    if (argc != 8) {
-        cerr << "Usage: " << argv[0] << " <ip-address>:<port> <csv_fn> <width> <t> <duration> <ev_per_pack> <check>" << endl;
-        return 1;
-    }
-
-    char* ip_port = argv[1];
-    char* csv_file = argv[2];
-    int width = atoi(argv[3]);
-    int sleeper = atoi(argv[4]);
-    int duration = atoi(argv[5]);
-    int ev_per_pack = atoi(argv[6]);
-    int check = atoi(argv[7]);
-
-    /*****************************************************/
-    /*                   Load CSV file                   */
-    /*****************************************************/
-    ifstream infile(csv_file);
-    vector<vector<int>> data;
-    string line;
-    int line_counter = 0;
-    while (getline(infile, line))
-    {
-        stringstream ss(line);
-        vector<int> values;
-        string value;
-        while (getline(ss, value, ','))
-        {
-            values.push_back(stoi(value));
-        }
-        data.push_back(values);
-        line_counter++;
-    }
-
-
-    printf("Total lines in csv file: %d\n", line_counter);
+void thread_function(char* argv[], int (*coordinates)[2], int line_counter, int (*evs_sent), int idx) {
     
-    int coordinates[line_counter][2];
-    int idx = 0;
-    for (auto& row : data)
-    {
-        coordinates[idx][0] = row[0];
-        coordinates[idx][1] = row[1];
-        idx++;
-    }
+    
+    //argv[0] << " <csv_fn> <ip-address> <port> <width> <t> <duration> <ev_per_pack> <nb_threads>
+    
+    int offset = idx; //std::rand() % 32767;
 
-
+    char* spif_ip = argv[2];
+    int port = atoi(argv[3]);
+    int width = atoi(argv[4]);
+    int sleeper = atoi(argv[5]);
+    int duration = atoi(argv[6]);
+    int ev_per_pack = atoi(argv[7]);
+    
     /*****************************************************/
     /*                   Setup Socket                    */
     /*****************************************************/
     struct sockaddr_in udp_addr;
     memset(&udp_addr, 0, sizeof(udp_addr));
     udp_addr.sin_family = AF_INET;
-    udp_addr.sin_port = htons(atoi(strrchr(ip_port, ':') + 1));
-    char * spif_ip = strtok(ip_port, ":");
+    udp_addr.sin_port = htons(port);
     inet_pton(AF_INET, spif_ip, &udp_addr.sin_addr);
 
     int udp_fd = socket(AF_INET, SOCK_DGRAM, 0);
     if (udp_fd < 0) {
         cerr << "Error: Could not create socket." << endl;
-        return 1;
     }
 
 
@@ -151,8 +103,8 @@ int main(int argc, char* argv[]) {
 
     auto start_t = std::chrono::steady_clock::now();
 
-    int current_line = 0;
-    long int total_ev_sent = 0;
+    int current_line = offset;
+    int total_ev_sent = 0;
 
     while(true) {
         auto current_t = std::chrono::steady_clock::now();
@@ -179,7 +131,6 @@ int main(int argc, char* argv[]) {
         // std::cout << "hello" << std::endl;
         if (sendto(udp_fd, &message, sizeof(message), 0, (struct sockaddr*)&udp_addr, sizeof(udp_addr)) < 0) {
             cerr << "Error: Failed to send data." << endl;
-            return 1;
         }
         total_ev_sent += message_sz;
         
@@ -189,15 +140,84 @@ int main(int argc, char* argv[]) {
 
 
     }
-    printf("Total events sent: %ld\n", total_ev_sent);
+    // printf("Total events sent: %d\n", total_ev_sent);
+    evs_sent[idx] = total_ev_sent;
 
     close(udp_fd);
-    
-    if(check == 1){
-        std::this_thread::sleep_for(std::chrono::seconds(1));
-        send_request(spif_ip, 4000, total_ev_sent);
-    }
-    
 
+
+}
+
+int main(int argc, char* argv[]) {
+
+
+    srand(time(NULL)); // seed the random number generator with the current time
+
+    if (argc != 9) {
+        cerr << "Usage: " << argv[0] << " <csv_fn> <ip-address> <port> <width> <t> <duration> <ev_per_pack> <nb_threads>" << endl;
+        return 1;
+    }
+
+    int nb_threads = atoi(argv[8]);
+
+    
+    std::srand(std::time(nullptr));
+
+    
+    char* csv_file = argv[1];
+    
+    int evs_sent[64];
+    std::memset(evs_sent, 0, sizeof(evs_sent));
+
+    /*****************************************************/
+    /*                   Load CSV file                   */
+    /*****************************************************/
+    ifstream infile(csv_file);
+    vector<vector<int>> data;
+    string line;
+    int line_counter = 0;
+    while (getline(infile, line))
+    {
+        stringstream ss(line);
+        vector<int> values;
+        string value;
+        while (getline(ss, value, ','))
+        {
+            values.push_back(stoi(value));
+        }
+        data.push_back(values);
+        line_counter++;
+    }
+
+
+    // printf("Total lines in csv file: %d\n", line_counter);
+    
+    int coordinates[32768][2];
+    int idx = 0;
+    for (auto& row : data)
+    {
+        coordinates[idx][0] = row[0];
+        coordinates[idx][1] = row[1];
+        idx++;
+    }
+
+    std::vector<std::thread> threads;
+    for (int i = 0; i < nb_threads; ++i) {
+        threads.emplace_back(thread_function, argv, coordinates, line_counter, evs_sent, i);
+    }
+
+    // Wait for all threads to finish
+    for (auto& thread : threads) {
+        thread.join();
+    }
+
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+
+    int total_ev_count = 0;
+    for(int i=0; i<nb_threads; i++){
+        total_ev_count += evs_sent[i];
+    }
+
+    send_request(argv, 4000, total_ev_count);
     return 0;
 }
